@@ -15,8 +15,8 @@ int main(int argc, char* argv[]) {
 
 	CONSOLE_SCREEN_BUFFER_INFO screen;
 	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &screen);//get info about console screen
-	const int maxX = (screen.srWindow.Right + 1) * 0.6;  
-	const int maxY = (screen.srWindow.Bottom + 1) * 0.6; //set boundaries for cursor
+	const int maxX = (screen.srWindow.Right + 1) * 0.1;  
+	const int maxY = (screen.srWindow.Bottom + 1) * 0.1; //set boundaries for cursor
 
 	Notepad notepad(maxX, maxY);
 
@@ -96,11 +96,12 @@ int main(int argc, char* argv[]) {
 
 					default:
 						int keyCode = eventBuffer->Event.KeyEvent.uChar.AsciiChar;
-						if (keyCode >= 32 && keyCode <= 126) {
+						if (keyCode >= 32 && keyCode <= 126 ) {
 							notepad.insert(static_cast<char>(keyCode));
 							//print notepad
 							notepad.print();
 						}
+						
 						break;
 					}
 				}
