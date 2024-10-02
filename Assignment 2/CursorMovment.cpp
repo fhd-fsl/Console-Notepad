@@ -96,9 +96,18 @@ int main(int argc, char* argv[]) {
 
 					default:
 						int keyCode = eventBuffer->Event.KeyEvent.uChar.AsciiChar;
+
+						//input
 						if (keyCode >= 32 && keyCode <= 126 ) {
 							notepad.insert(static_cast<char>(keyCode));
 							//print notepad
+							notepad.print();
+						}
+
+						//delete
+						else if (keyCode == 8)
+						{
+							notepad.backSpace();
 							notepad.print();
 						}
 						

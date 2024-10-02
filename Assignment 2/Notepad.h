@@ -28,8 +28,8 @@ private:
 public:
 
 	//cursor coordinates(point to current pointer)
-	int x ;
-	int y ;
+	int x;
+	int y;
 
 	//constructor destructor
 	Notepad(int maxX, int maxY)
@@ -58,10 +58,10 @@ public:
 			head = temp;
 		}
 	}
-
 	//get x,y coordinates of where the current pointer is pointing
 	coord currentCoordinates()
 	{
+
 		Node* curr = head;
 		Node* currRow = head;
 		coord c;
@@ -84,19 +84,18 @@ public:
 		}
 		return c;
 	}
-
 	//functions to move the current pointer as well as cursor coordinates
 	bool moveDown()
 	{
 		if (current && current->down)
 		{
-			
+
 			current = current->down;
 			currRow = startOfRow(current);
 			if (x == 1)
 				x = 1;
 			else
-				x = currentCoordinates().x+1;
+				x = currentCoordinates().x + 1;
 			y = currentCoordinates().y;
 			gotoxy(x, y);
 			return true;
@@ -112,7 +111,7 @@ public:
 			if (x == 1)
 				x = 1;
 			else
-			x = currentCoordinates().x+1;
+				x = currentCoordinates().x + 1;
 			y = currentCoordinates().y;
 			gotoxy(x, y);
 			return true;
@@ -162,34 +161,49 @@ public:
 		if (current && current->left)
 		{
 			current = current->left;
-			x = currentCoordinates().x+1;
-			y = currentCoordinates().y;
-			gotoxy(x, y);
-			return true;
-		}
-		else if (current && x == 1 && current->left == nullptr && currRow->up)
-		{
-			currRow = currRow->up;
-			current = endOfRow(currRow);
 			x = currentCoordinates().x + 1;
 			y = currentCoordinates().y;
 			gotoxy(x, y);
 			return true;
 		}
-		else if(current)
+		else if (current && x == 1 && current->left == nullptr )
 		{
-			x = 1;
-			y = currentCoordinates().y;
-			gotoxy(x, y);
-			return true;
+			if (currRow->up)
+			{
+				currRow = currRow->up;
+				current = endOfRow(currRow);
+				x = currentCoordinates().x + 1;
+				y = currentCoordinates().y;
+				gotoxy(x, y);
+				return true;
+			}
+		}
+		else
+		{
+			if (x == 1)
+			{
+				x = 1;
+				y = currentCoordinates().y;
+				gotoxy(x, y);
+				return false;
+			}
+			else
+			{
+				x = 1;
+				y = currentCoordinates().y;
+				gotoxy(x, y);
+				return true;
+			}
+			
 		}
 		return false;
 
 	}
-
 	//functions to return start of row/col of given node
 	Node* startOfRow(Node* current)
 	{
+		if (!current)
+			return current;
 		while (current->left)
 		{
 			current = current->left;
@@ -198,6 +212,8 @@ public:
 	}
 	Node* endOfRow(Node* current)
 	{
+		if (!current)
+			return current;
 		while (current->right)
 		{
 			current = current->right;
@@ -206,6 +222,8 @@ public:
 	}
 	Node* startOfCol(Node* current)
 	{
+		if (!current)
+			return current;
 		while (current->up)
 		{
 			current = current->up;
@@ -214,13 +232,14 @@ public:
 	}
 	Node* endOfCol(Node* current)
 	{
+		if (!current)
+			return current;
 		while (current->down)
 		{
 			current = current->down;
 		}
 		return current;
 	}
-
 	//functions to get row/col sizes
 	int rowSize(Node* startingPoint)
 	{
@@ -244,7 +263,6 @@ public:
 		}
 		return s;
 	}
-
 	// function to tell if row/col is full
 	bool rowIsFull(Node* rowNode)
 	{
@@ -256,7 +274,6 @@ public:
 	{
 		return colSize(this->head) >= maxY;
 	}
-
 	//reconnets all vertical connections
 	void reconnectAllVertical()
 	{
@@ -275,7 +292,7 @@ public:
 		{
 			Node* curr1 = row1;
 			Node* curr2 = row2;
-			
+
 
 			bool curr1End = 0;
 			bool curr2End = 0;
@@ -283,9 +300,9 @@ public:
 			while (!curr1End || !curr2End)
 			{
 
-				if(!curr1End)
+				if (!curr1End)
 					curr1->down = curr2;
-				if(!curr2End)
+				if (!curr2End)
 					curr2->up = curr1;
 
 				if (curr1->right)
@@ -314,80 +331,8 @@ public:
 		}
 	}
 
-	//removes node(if the node==current, shift current to right/ next row or left/prev row depending on currDir)
-	void removeNode(Node* node, char currDir='R')
-	{
-		if (!node)
-			return;
 
-		if (head == node)
-		{
-			if (head->right)
-				head = head->right;
-			else
-				head = head->down;
-		}
-		if (current == node)
-		{
-			if (currDir == 'R')
-			{
-				if (moveRight());
-				else if (moveLeft());
-			}
-			else 
-			{
-				if (moveLeft());
-				else if (moveRight());
-			}
-		}
 
-		//if node is in middle or end
-		if (node->left)
-		{
-			node->left->right = node->right;
-			if (node->right)
-			{
-				node->right->left = node->left;
-			}
-		}
-
-		//if node is the first of the row
-		else
-		{
-			if (node->right)
-			{
-				node->right->up = node->up;
-				if (node->up)
-				{
-					node->up->down = node->right;
-				}
-				node->right->down = node->down;
-				if (node->down)
-				{
-					node->down->up = node->right;
-				}
-				node->right->left = node->left;
-			}
-			else
-			{
-				if (node->up)
-				{
-					node->up->down = node->down;
-				}
-				if (node->down)
-				{
-					node->down->up = node->up;
-				}
-			}
-		}
-		node->left = nullptr;
-		node->right = nullptr;
-		node->up = nullptr;
-		node->down = nullptr;
-		delete node;
-		reconnectAllVertical();
-		
-	}
 
 	//shifts last word to next line
 	bool makeSpace(Node* rowNode)
@@ -399,8 +344,8 @@ public:
 		bool oneTimer = true;
 		int rollBackCounter = 0;
 
-		
-		while (lastNode->ch != ' ' && lastNode!=rowStart)
+
+		while (lastNode->ch != ' ' && lastNode != rowStart)
 		{
 			if (oneTimer && rowStart->down)
 			{
@@ -428,7 +373,7 @@ public:
 				{
 					roll1Back(rowStart);
 				}
-				if(rowStart->down && rowStart->down->ch==' ')
+				if (rowStart->down && !oneTimer && rowStart->down->ch == ' ')
 					removeNode(rowStart->down, 'L');
 				return false;
 			}
@@ -439,13 +384,16 @@ public:
 
 			lastNode = endOfRow(rowStart);
 		}
+		//reached end of row
 		if (lastNode == rowStart)
 		{
 			make1Space(rowStart);
 			return false;
 		}
+		//shifting is done, remove the last space 
 		else
 		{
+
 			removeNode(lastNode);
 			return true;
 		}
@@ -466,9 +414,9 @@ public:
 
 		//store the last node of the row that is to be shifted
 		Node* last = endOfRow(rowNode);
-		
+
 		//if the next row doesn't exist
-		if (nextRow==nullptr)
+		if (nextRow == nullptr)
 		{
 			//if theres no space to add new row then failure
 			if (colsAreFull())
@@ -477,7 +425,7 @@ public:
 			//else add new row
 			else
 			{
-				if(last->left)
+				if (last->left)
 					last->left->right = nullptr;
 				last->left = nullptr;
 				last->down = nullptr;
@@ -517,7 +465,7 @@ public:
 		//if there is space in the next row, remove from end of current row and insert at start of next row
 		else
 		{
-			if(last->left)
+			if (last->left)
 				last->left->right = nullptr;
 			last->left = nullptr;
 			last->down = nextRow->down;
@@ -538,7 +486,7 @@ public:
 	}
 
 	//shifts next row's first node to targetRow's last 
-	bool roll1Back(Node* targetRow, bool doForAllRows=0)
+	bool roll1Back(Node* targetRow, bool doForAllRows = 0)
 	{
 		if (targetRow == nullptr || rowIsFull(targetRow))
 			return false;
@@ -547,7 +495,7 @@ public:
 		if (currRow->down)
 		{
 			Node* nextRow = currRow->down;
-			
+
 			if (nextRow->right)
 			{
 				currRow->down = nextRow->right;
@@ -572,21 +520,136 @@ public:
 			nextRow->right = nullptr;
 			reconnectAllVertical();
 
-			
+
 		}
 		if (doForAllRows)
 		{
 			roll1Back(currRow->down, doForAllRows);
 		}
 		return true;
+
+	}
+	//removes node(if the node==current, shift current to right/ next row or left/prev row depending on currDir)
+	void removeNode(Node* node, char currDir = 'R')
+	{
+		if (!node)
+			return;
+
+		if (current == node)
+		{
+			if (currDir == 'R')
+			{
+				if (moveRight());
+				else if (moveLeft());
+			}
+			else if( currDir=='L')
+			{
+				if (moveLeft());
+				else if (moveRight());
+			}
+		}
 		
+		if (head == node)
+		{
+			if (head->right)
+			{
+				head = head->right;
+			}
+			else if (head->down)
+				head = head->down;
+			else
+			{
+				head = nullptr;
+				current = nullptr;
+				currRow = nullptr;
+				x = 1;
+				y = 1;
+			}
+		}
+
+
+		//if node is in middle or end
+		if (node->left)
+		{
+			node->left->right = node->right;
+			if (node->right)
+			{
+				node->right->left = node->left;
+			}
+		}
+
+		//if node is the first of the row
+		else
+		{
+			//node on it's right exists
+			if (node->right)
+			{
+				node->right->up = node->up;
+				if (node->up)
+				{
+					node->up->down = node->right;
+				}
+				node->right->down = node->down;
+				if (node->down)
+				{
+					node->down->up = node->right;
+				}
+				node->right->left = node->left;
+			}
+
+			//it is the only node in the line
+			else
+			{
+				if (node->up)
+				{
+					node->up->down = node->down;
+				}
+				if (node->down)
+				{
+					node->down->up = node->up;
+				}
+			}
+		}
+		if (node == currRow)
+		{
+			currRow = startOfRow(current);
+		}
+		delete node;
+		reconnectAllVertical();
+
+	}
+
+	//delete text
+	void backSpace()
+	{
+		if (!current || (x==1 && y==1))
+			return;
+		if (x == 1)
+		{
+			moveLeft();
+			return;
+		}
+		Node* temp = current;
+
+		if (current->left || current->up)
+		{
+			moveLeft();
+		}
+		else
+		{
+			moveRight();
+			x = 1;
+			gotoxy(x, y);
+		}
+
+		removeNode(temp,'L');
 	}
 
 
 	//insert text
 	void insert(char ch)
 	{
-		
+
 		Node* temp = new Node(ch);
 
 		//insert when notepad is empty
@@ -595,6 +658,8 @@ public:
 			head = temp;
 			current = head;
 			currRow = current;
+			x = 1;
+			y = 1;
 			x++;
 			return;
 		}
@@ -615,7 +680,7 @@ public:
 				if (current->up)
 					current->up->down = temp;
 				if (current->down)
-					current->down->up= temp;
+					current->down->up = temp;
 				temp->right = current;
 				current->left = temp;
 
@@ -629,7 +694,7 @@ public:
 			else if (rowIsFull(current) && current->right == nullptr)
 			{
 				//move whole word to next line
-				if (ch != ' ' && current->ch!=' ')
+				if (ch != ' ' && current->ch != ' ')
 				{
 					if (!makeSpace(current))
 						return;
@@ -672,7 +737,7 @@ public:
 					x++;
 					gotoxy(x, y);
 				}
-				
+
 
 			}
 
@@ -702,22 +767,22 @@ public:
 				reconnectAllVertical();
 				moveRight();
 			}
-			
+
 		}
-		
+
 	}
 
 	void print()
 	{
-		Node* currRow = head;  
-		int rowNum = 1;  
+		Node* currRow = head;
+		int rowNum = 1;
 
 		while (currRow)
 		{
 			Node* current = currRow;
-			int colNum = 1;  
+			int colNum = 1;
 
-	
+
 			while (current)
 			{
 				gotoxy(colNum, rowNum);
@@ -730,9 +795,18 @@ public:
 			{
 				cout << " ";
 			}
-	
+
 			currRow = currRow->down;
 			rowNum++;
+		}
+		for (; rowNum <= maxY; rowNum++)
+		{
+			int colNum = 1;
+			gotoxy(colNum, rowNum);
+			for (int a = colNum; a <= maxX; a++)
+			{
+				cout << " ";
+			}
 		}
 
 		// After printing, move the cursor back to its original position
