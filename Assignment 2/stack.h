@@ -1,8 +1,4 @@
 #pragma once
-#include "Notepad.h"
-class Notepad;
-
-
 
 // node to create a linked list based string
 struct charNode
@@ -118,6 +114,18 @@ struct Insertion : public Entry
 		if (endingNode->left)
 		{
 			endingNode = endingNode->left;
+
+		}
+		else
+		{
+			if (endingNode->up)
+			{
+				endingNode = endingNode->up;
+			}
+			while (endingNode->right != nullptr)
+			{
+				endingNode = endingNode->right;
+			}
 		}
 	}
 };
@@ -266,25 +274,4 @@ struct stack
 		}
 	}
 
-
-	void undoInsertion(Notepad& notepad)
-	{
-		if (isEmpty())
-			return;
-		if (topEntry->isInsertion)
-		{
-			deactivate();
-			while (((Insertion*)topEntry)->endingNode != topEntry->startingNode)
-			{
-				notepad.moveCurrentTo(((Insertion*)topEntry)->endingNode);
-				((Insertion*)topEntry)->decrementEndingNode();
-				notepad.backSpace();
-			}
-			notepad.moveCurrentTo(((Insertion*)topEntry)->startingNode);
-			notepad.backSpace();
-			this->pop();
-		}
-	}
 };
-
-

@@ -2,7 +2,7 @@
 #include "Node.h"
 #include<iostream>
 #include "stack.h"
-class stack;
+
 
 
 
@@ -77,6 +77,8 @@ public:
 		y = currentCoordinates().y;
 		if (!xIsAtStartOfRow)
 			x++;
+		else
+			x = 1;
 	}
 	//get x,y coordinates of where the current pointer is pointing
 	coord currentCoordinates()
@@ -1121,4 +1123,24 @@ public:
 		gotoxy(x, y);
 	}
 
+	void undoInsertion()
+	{
+		if (Stack.isEmpty())
+			return;
+		if (Stack.topEntry->isInsertion)
+		{
+			Stack.deactivate();
+			while (((Insertion*)Stack.topEntry)->endingNode != Stack.topEntry->startingNode)
+			{
+				moveCurrentTo(((Insertion*)Stack.topEntry)->endingNode);
+				((Insertion*)Stack.topEntry)->decrementEndingNode();
+				backSpace();
+			}
+			moveCurrentTo(((Insertion*)Stack.topEntry)->startingNode);
+			backSpace();
+			Stack.pop();
+		}
+	}
+
 };
+

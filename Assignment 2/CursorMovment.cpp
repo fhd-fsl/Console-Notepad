@@ -106,7 +106,7 @@ int main(int argc, char* argv[]) {
 					case VK_CONTROL: 
 
 						//undo
-						stack.undoInsertion(notepad);
+						notepad.undoInsertion();
 						notepad.print();
 						if ((eventBuffer[i].Event.KeyEvent.dwControlKeyState & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED))
 							&& eventBuffer[i].Event.KeyEvent.wVirtualKeyCode == 'Z') 
