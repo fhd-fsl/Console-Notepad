@@ -1,6 +1,11 @@
 #pragma once
 #include "Node.h"
 #include<iostream>
+#include "stack.h"
+class stack;
+
+
+
 using namespace std;
 
 struct coord
@@ -17,22 +22,21 @@ void gotoxy(int x, int y)
 
 class Notepad
 {
-private:
+public:
 	Node* head;
 	Node* current;
 	Node* currRow;
+	stack& Stack;
 
 	int maxX;
 	int maxY;
-
-public:
 
 	//cursor coordinates(point to current pointer)
 	int x;
 	int y;
 
 	//constructor destructor
-	Notepad(int maxX, int maxY)
+	Notepad(int maxX, int maxY, stack& Stack ): Stack(Stack)
 	{
 		head = new Node('\n');
 		head->newLine = true;
@@ -58,6 +62,21 @@ public:
 			}
 			head = temp;
 		}
+	}
+
+	//moves current to the specified node
+	void moveCurrentTo(Node* node, bool xIsAtStartOfRow=0)
+	{
+		if (!node)
+			return;
+		node->ch;
+
+		current = node;
+		currRow = startOfRow(current);
+		x = currentCoordinates().x;
+		y = currentCoordinates().y;
+		if (!xIsAtStartOfRow)
+			x++;
 	}
 	//get x,y coordinates of where the current pointer is pointing
 	coord currentCoordinates()
@@ -658,6 +677,42 @@ public:
 		if (!node)
 			return;
 
+		//if a node is about to be deleted and it is in stack, move the pointer in stack accordingly
+		if (!Stack.isEmpty())
+		{
+			Entry* currentEntry = Stack.topEntry;
+			for (int a = 0; a < Stack.currSize; a++)
+			{
+				
+				if (currentEntry->startingNode == node) 
+				{
+					Node* tempCurrent = current;
+					int tempX = x;
+
+					moveCurrentTo(node);
+					if (moveLeft());
+					else
+						moveRight();
+
+					currentEntry->startingNode = current;
+					moveCurrentTo(tempCurrent, (tempX == 1));
+				}
+				if (currentEntry->isInsertion && ((Insertion*)currentEntry)->endingNode == node)
+				{
+					Node* tempCurrent = current;
+					int tempX = x;
+
+					moveCurrentTo(node);
+					if (moveLeft());
+					else
+						moveRight();
+
+					((Insertion*)currentEntry)->endingNode = current;
+					moveCurrentTo(tempCurrent, (tempX == 1));
+				}
+				currentEntry = currentEntry->bottom;
+			}
+		}
 		if (current == node)
 		{
 			if (currDir == 'R')
@@ -867,13 +922,13 @@ public:
 	}
 
 	//insert text
-	void insert(char ch)
+	bool insert(char ch)
 	{
 		if (current && current->ch == '\n')
 		{
 			current->ch = ch;
 			x++;
-			return;
+			return true;
 		}
 
 		Node* temp = new Node(ch);
@@ -888,7 +943,7 @@ public:
 			x = 1;
 			y = 1;
 			x++;
-			return;
+			return true;
 		}
 
 		//insert at current
@@ -900,7 +955,7 @@ public:
 			{
 				if (rowIsFull(current) && !makeSpace(current))
 				{
-					return;
+					return false;
 				}
 				if (current->newLine)
 				{
@@ -929,7 +984,7 @@ public:
 				if (ch != ' ' && current->ch != ' ')
 				{
 					if (!makeSpace(current))
-						return;
+						return false;
 					currRow = startOfRow(current);
 					delete temp;
 					insert(ch);
@@ -943,7 +998,7 @@ public:
 
 						Node* nextRow = currRow->down;
 						if (rowIsFull(nextRow) && !makeSpace(nextRow))
-							return;
+							return false;
 						temp->up = currRow;
 						currRow->down = temp;
 						temp->left = nullptr;
@@ -960,7 +1015,7 @@ public:
 					else
 					{
 						if (colsAreFull())
-							return;
+							return false;
 						temp->up = currRow;
 						if (currRow->down)
 						{
@@ -1006,7 +1061,7 @@ public:
 			}
 
 		}
-
+		return true;
 	}
 
 	void print()

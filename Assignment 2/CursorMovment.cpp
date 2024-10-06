@@ -1,6 +1,7 @@
 #include <iostream>
 #include <Windows.h>
 #include "Notepad.h"
+#include "stack.h"
 
 using namespace std;
 
@@ -18,7 +19,9 @@ int main(int argc, char* argv[]) {
 	const int maxX = (screen.srWindow.Right + 1) * 0.2;  
 	const int maxY = (screen.srWindow.Bottom + 1) * 0.2; //set boundaries for cursor
 
-	Notepad notepad(maxX, maxY);
+	stack stack;
+	Notepad notepad(maxX, maxY, stack);
+	
 
 	bool Running = true;
 	
@@ -78,33 +81,68 @@ int main(int argc, char* argv[]) {
 					//move the cursor as well as current pointer
 					case VK_UP: //up
 						notepad.moveUp();
+						stack.deactivate();
 						//notepad.print();
 						break;
 
 					case VK_DOWN: //down
 						notepad.moveDown();
+						stack.deactivate();
 						//notepad.print();
 						break;
 
 					case VK_RIGHT: //right
 						notepad.moveRight();
+						stack.deactivate();
 						//notepad.print();
 						break;
 
 					case VK_LEFT: //left
 						notepad.moveLeft();
+						stack.deactivate();
 						//notepad.print();
 						break;
 
+					case VK_CONTROL: 
+
+						//undo
+						stack.undoInsertion(notepad);
+						notepad.print();
+						if ((eventBuffer[i].Event.KeyEvent.dwControlKeyState & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED))
+							&& eventBuffer[i].Event.KeyEvent.wVirtualKeyCode == 'Z') 
+						{
+							
+						}
+						break;
 
 					default:
 						int keyCode = eventBuffer->Event.KeyEvent.uChar.AsciiChar;
 
 						//input
-						if (keyCode >= 32 && keyCode <= 126 ) {
-							notepad.insert(static_cast<char>(keyCode));
-							//print notepad
-							
+						if (keyCode == ' ' || (keyCode >= 'A' && keyCode <= 'Z') || (keyCode >= 'a' && keyCode <= 'z')) {
+
+							if (notepad.insert(static_cast<char>(keyCode)))
+							{
+
+								//actiavate insertion entry in stack if a char is pressed
+								if (stack.insertionActivated == false && keyCode != ' ')
+								{
+									stack.activateInsertion();
+									stack.addToInsertion(notepad.current);
+								}
+
+								//if insertion is activated and a space isn't entered, add the new node to the insertion entry
+								else if (stack.insertionActivated == true && keyCode != ' ')
+								{
+									stack.addToInsertion(notepad.current);
+								}
+
+								else if (stack.insertionActivated == true && keyCode == ' ')
+								{
+									stack.addToInsertion(notepad.current);
+									stack.deactivate();
+								}
+							}
 						}
 
 						//delete
@@ -115,6 +153,7 @@ int main(int argc, char* argv[]) {
 						}
 						else if (keyCode == 13)
 						{
+							stack.deactivate();
 							notepad.enter();
 						}
 						notepad.print();
