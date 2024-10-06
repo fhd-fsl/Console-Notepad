@@ -15,8 +15,8 @@ int main(int argc, char* argv[]) {
 
 	CONSOLE_SCREEN_BUFFER_INFO screen;
 	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &screen);//get info about console screen
-	const int maxX = (screen.srWindow.Right + 1) * 0.1;  
-	const int maxY = (screen.srWindow.Bottom + 1) * 0.1; //set boundaries for cursor
+	const int maxX = (screen.srWindow.Right + 1) * 0.2;  
+	const int maxY = (screen.srWindow.Bottom + 1) * 0.2; //set boundaries for cursor
 
 	Notepad notepad(maxX, maxY);
 
@@ -74,23 +74,26 @@ int main(int argc, char* argv[]) {
 					
 					// check if the key press was an arrow key
 					switch (eventBuffer[i].Event.KeyEvent.wVirtualKeyCode) {
-					
-
+				
 					//move the cursor as well as current pointer
 					case VK_UP: //up
 						notepad.moveUp();
+						//notepad.print();
 						break;
 
 					case VK_DOWN: //down
 						notepad.moveDown();
+						//notepad.print();
 						break;
 
 					case VK_RIGHT: //right
 						notepad.moveRight();
+						//notepad.print();
 						break;
 
 					case VK_LEFT: //left
 						notepad.moveLeft();
+						//notepad.print();
 						break;
 
 
@@ -101,15 +104,20 @@ int main(int argc, char* argv[]) {
 						if (keyCode >= 32 && keyCode <= 126 ) {
 							notepad.insert(static_cast<char>(keyCode));
 							//print notepad
-							notepad.print();
+							
 						}
 
 						//delete
 						else if (keyCode == 8)
 						{
 							notepad.backSpace();
-							notepad.print();
+							
 						}
+						else if (keyCode == 13)
+						{
+							notepad.enter();
+						}
+						notepad.print();
 						
 						break;
 					}

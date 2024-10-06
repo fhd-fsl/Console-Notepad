@@ -6,6 +6,7 @@ struct Node
 	Node* down;
 	Node* left;
 	Node* right;
+	bool newLine;
 
 
 	Node(char ch='\0') :ch(ch)
@@ -14,7 +15,7 @@ struct Node
 		down = nullptr;
 		left= nullptr;
 		right= nullptr;
-
+		newLine = 0;
 	}
 };
 
