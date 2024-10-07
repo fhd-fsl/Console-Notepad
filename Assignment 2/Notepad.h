@@ -619,10 +619,7 @@ public:
 							nextRow = nextRow->down;
 						removeNode(temp);
 					}
-					current = tempCurrent;
-					currRow = startOfRow(current);
-					x = tempX;
-					y = tempY;
+					moveCurrentTo(tempCurrent, tempX==1);
 				}
 				else
 					break;
@@ -851,7 +848,18 @@ public:
 			gotoxy(x, y);
 		}
 		removeNode(temp,'L');
-		rollBack(current);
+
+		temp = currRow;
+		while (temp && temp->newLine == false)
+		{
+			rollBack(currRow);
+			temp = temp->up;
+		}
+		if (temp)
+		{
+			rollBack(temp);
+		}
+		
 	}
 	void enter()
 	{
@@ -859,8 +867,24 @@ public:
 		if (!current || colsAreFull())
 			return;
 
+		//pressing enter at end of line
+		if (current->right == nullptr)
+		{
+			Node* newNode = new Node('\n');
+			newNode->newLine = true;
+			newNode->down = currRow->down;
+			if (currRow->down)
+			{
+				currRow->down->up = newNode;
+			}
+			newNode->up = currRow;
+			currRow->down = newNode;
+			reconnectAllVertical();
+			moveRight();
+
+		}
 		//pressing enter at start of line
-		if (x == 1)
+		else if (x == 1)
 		{
 			Node* newNode = new Node('\n');
 			newNode->newLine = true;
@@ -905,22 +929,7 @@ public:
 
 		}
 
-		//pressing enter at end of line
-		else if(current->right==nullptr)
-		{
-			Node* newNode = new Node('\n');
-			newNode->newLine = true;
-			newNode->down = currRow->down;
-			if (currRow->down)
-			{
-				currRow->down->up = newNode;
-			}
-			newNode->up = currRow;
-			currRow->down = newNode;
-			reconnectAllVertical();
-			moveRight();
-
-		}
+		
 	}
 
 	//insert text

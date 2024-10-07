@@ -16,8 +16,8 @@ int main(int argc, char* argv[]) {
 
 	CONSOLE_SCREEN_BUFFER_INFO screen;
 	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &screen);//get info about console screen
-	const int maxX = (screen.srWindow.Right + 1) * 0.2;  
-	const int maxY = (screen.srWindow.Bottom + 1) * 0.2; //set boundaries for cursor
+	const int maxX = (screen.srWindow.Right + 1) * 0.6;  
+	const int maxY = (screen.srWindow.Bottom + 1) * 0.6; //set boundaries for cursor
 
 	stack stack;
 	Notepad notepad(maxX, maxY, stack);
