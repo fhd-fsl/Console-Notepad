@@ -1,98 +1,30 @@
 #pragma once
 
-// node to create a linked list based string
-struct charNode
-{
-	char ch;
-	charNode* left;
-	charNode* right;
-
-	charNode(char ch)
-	{
-		left = nullptr;
-		right = nullptr;
-		this->ch = ch;
-	}
-};
-//string to be stored in deletion entry that will be inserted upon undo
-struct String
-{
-	charNode* start;
-	int size;
-
-	String() {
-		start = nullptr;
-		size = 0;
-	}
-	~String()
-	{
-		charNode* next = start;
-		while (next)
-		{
-			next = start->right;
-			delete start;
-			start = next;
-		}
-	}
-	void insertAtStart(char ch)
-	{
-		charNode* newNode = new charNode(ch);
-		if (start == nullptr)
-		{
-			start = newNode;
-			size++;
-		}
-		else
-		{
-			start->left = newNode;
-			newNode->right = start;
-			start = newNode;
-			size++;
-		}
-	}
-	char getStartCh()
-	{
-		return this->start->ch;
-	}
-	void popStart()
-	{
-		if (start == nullptr)
-			return;
-		charNode* temp = start;
-		start = start->right;
-		delete temp;
-		size--;
-	}
-
-};
-
 //Parent entry class that will store 1 insertion/deletion operation in stack
-struct Entry
+class Entry
 {
+public:
 	bool isInsertion;
-	Node* startingNode;
 	Entry* top;
 	Entry* bottom;
+	
 
 	Entry()
 	{
-		startingNode = nullptr;
 		top = nullptr;
 		bottom = nullptr;
 	}
 	virtual ~Entry()
-	{
-
-	}
+	{}
 
 	//updates endNode pointer for insertion
 	virtual void add(Node* node)
 	{}
-
 };
 
 struct Insertion : public Entry
 {
+	Node* startingNode;
 	Node* endingNode;
 	Insertion(): Entry()
 	{
@@ -130,13 +62,97 @@ struct Insertion : public Entry
 	}
 };
 
+struct NodeDp
+{
+	Node* node;
+	NodeDp* next;
+
+	NodeDp(Node* node=nullptr)
+	{
+		this->node = node;
+		this->next = nullptr;
+	}
+};
 struct Deletion : public Entry
 {
-	String word;
+	Node* insertionPoint;
+	NodeDp* head;
+
 	Deletion(): Entry()
 	{
 		isInsertion = false;
-		startingNode = nullptr;
+		head = nullptr;
+		insertionPoint = nullptr;
+	}
+	~Deletion()
+	{
+		NodeDp* temp = head;
+		while (temp)
+		{
+			delete temp->node;
+			temp = temp->next;
+		}
+		while (head)
+		{
+			temp = head;
+			head = head->next;
+			delete temp;
+		}
+	}
+	bool isEmpty()
+	{
+		return head== nullptr;
+	}
+
+	void add(Node* node)
+	{
+		NodeDp* temp = new NodeDp(node);
+		if (isEmpty())
+		{
+			head = temp;
+		}
+		else
+		{
+			temp->next = head;
+			head = temp;
+		}
+		setInsertionPoint();
+	}
+
+	void incrementStartingNode()
+	{
+		if (!isEmpty())
+		{
+			NodeDp* temp = head;
+			head = head->next;
+			delete temp;
+		}
+	}
+	Node* getStartingNode()
+	{
+		if (!head)
+			return nullptr;
+		else
+			return head->node;
+	}
+	void setInsertionPoint()
+	{
+		if (!isEmpty())
+		{
+ 			
+			if (head->node->left)
+			{
+				insertionPoint = head->node->left;
+			}
+			else if (head->node->up)
+			{
+				insertionPoint = head->node->up;
+				while (insertionPoint->right)
+				{
+					insertionPoint = insertionPoint->right;
+				}
+			}
+		}
 	}
 };
 
@@ -269,6 +285,14 @@ struct stack
 	void addToInsertion(Node* node)
 	{
 		if (insertionActivated && topEntry->isInsertion)
+		{
+			topEntry->add(node);
+		}
+	}
+
+	void addToDeletion(Node* node)
+	{
+		if (deletionActivated && !topEntry->isInsertion)
 		{
 			topEntry->add(node);
 		}

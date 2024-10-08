@@ -16,8 +16,8 @@ int main(int argc, char* argv[]) {
 
 	CONSOLE_SCREEN_BUFFER_INFO screen;
 	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &screen);//get info about console screen
-	const int maxX = (screen.srWindow.Right + 1) * 0.6;  
-	const int maxY = (screen.srWindow.Bottom + 1) * 0.6; //set boundaries for cursor
+	const int maxX = (screen.srWindow.Right + 1) * 0.2;  
+	const int maxY = (screen.srWindow.Bottom + 1) * 0.2; //set boundaries for cursor
 
 	stack stack;
 	Notepad notepad(maxX, maxY, stack);
@@ -82,37 +82,26 @@ int main(int argc, char* argv[]) {
 					case VK_UP: //up
 						notepad.moveUp();
 						stack.deactivate();
-						//notepad.print();
 						break;
 
 					case VK_DOWN: //down
 						notepad.moveDown();
 						stack.deactivate();
-						//notepad.print();
 						break;
 
 					case VK_RIGHT: //right
 						notepad.moveRight();
 						stack.deactivate();
-						//notepad.print();
 						break;
 
 					case VK_LEFT: //left
 						notepad.moveLeft();
 						stack.deactivate();
-						//notepad.print();
 						break;
 
-					case VK_CONTROL: 
-
-						//undo
-						notepad.undoInsertion();
+					case VK_CONTROL: //undo
+						notepad.undo();
 						notepad.print();
-						if ((eventBuffer[i].Event.KeyEvent.dwControlKeyState & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED))
-							&& eventBuffer[i].Event.KeyEvent.wVirtualKeyCode == 'Z') 
-						{
-							
-						}
 						break;
 
 					default:
@@ -123,20 +112,18 @@ int main(int argc, char* argv[]) {
 
 							if (notepad.insert(static_cast<char>(keyCode)))
 							{
-
 								//actiavate insertion entry in stack if a char is pressed
 								if (stack.insertionActivated == false && keyCode != ' ')
 								{
 									stack.activateInsertion();
 									stack.addToInsertion(notepad.current);
 								}
-
 								//if insertion is activated and a space isn't entered, add the new node to the insertion entry
 								else if (stack.insertionActivated == true && keyCode != ' ')
 								{
 									stack.addToInsertion(notepad.current);
 								}
-
+								//if space is entered, finish taking input in undo stack (1 word completed)
 								else if (stack.insertionActivated == true && keyCode == ' ')
 								{
 									stack.addToInsertion(notepad.current);
@@ -148,9 +135,10 @@ int main(int argc, char* argv[]) {
 						//delete
 						else if (keyCode == 8)
 						{
-							notepad.backSpace();
-							
+							notepad.backSpace(true);
 						}
+
+						//emter
 						else if (keyCode == 13)
 						{
 							stack.deactivate();

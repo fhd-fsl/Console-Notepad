@@ -69,7 +69,10 @@ public:
 	{
 		if (!node)
 			return;
-		node->ch;
+
+		char ch=node->ch;
+		node->left;
+		node->right;
 
 		current = node;
 		currRow = startOfRow(current);
@@ -676,40 +679,42 @@ public:
 		if (!node)
 			return;
 
-		//if a node is about to be deleted and it is in stack, move the pointer in stack accordingly
+		//if a node is about to be deleted and it is in insertion stack, move the pointer in insertion stack accordingly
 		if (!Stack.isEmpty())
 		{
 			Entry* currentEntry = Stack.topEntry;
 			for (int a = 0; a < Stack.currSize; a++)
 			{
-				
-				if (currentEntry->startingNode == node) 
+				if (currentEntry->isInsertion)
 				{
-					Node* tempCurrent = current;
-					int tempX = x;
+					if (((Insertion*)currentEntry)->startingNode == node)
+					{
+						Node* tempCurrent = current;
+						int tempX = x;
 
-					moveCurrentTo(node);
-					if (moveLeft());
-					else
-						moveRight();
+						moveCurrentTo(node);
+						if (moveLeft());
+						else
+							moveRight();
 
-					currentEntry->startingNode = current;
-					moveCurrentTo(tempCurrent, (tempX == 1));
+						((Insertion*)currentEntry)->startingNode = current;
+						moveCurrentTo(tempCurrent, (tempX == 1));
+					}
+					if (currentEntry->isInsertion && ((Insertion*)currentEntry)->endingNode == node)
+					{
+						Node* tempCurrent = current;
+						int tempX = x;
+
+						moveCurrentTo(node);
+						if (moveLeft());
+						else
+							moveRight();
+
+						((Insertion*)currentEntry)->endingNode = current;
+						moveCurrentTo(tempCurrent, (tempX == 1));
+					}
+					currentEntry = currentEntry->bottom;
 				}
-				if (currentEntry->isInsertion && ((Insertion*)currentEntry)->endingNode == node)
-				{
-					Node* tempCurrent = current;
-					int tempX = x;
-
-					moveCurrentTo(node);
-					if (moveLeft());
-					else
-						moveRight();
-
-					((Insertion*)currentEntry)->endingNode = current;
-					moveCurrentTo(tempCurrent, (tempX == 1));
-				}
-				currentEntry = currentEntry->bottom;
 			}
 		}
 		if (current == node)
@@ -804,13 +809,43 @@ public:
 		{
 			currRow = startOfRow(current);
 		}
-		delete node;
+
+		//if a node is about to be deleted and it is in deletion stack, don't delete
+		bool dontDelete = false;
+		if (!Stack.isEmpty())
+		{
+			Entry* currentEntry = Stack.topEntry;
+			for (int a = 0; a < Stack.currSize; a++)
+			{
+				if (!currentEntry->isInsertion)
+				{
+					NodeDp* temp = ((Deletion*)currentEntry)->head;
+					while (temp)
+					{
+						if (temp->node == node)
+						{
+							dontDelete = true;
+							break;
+						}
+						else
+							temp = temp->next;
+					}
+
+				}
+				currentEntry = currentEntry->bottom;
+			}
+		}
+		if ( !Stack.isEmpty() && !Stack.topEntry->isInsertion && ((Deletion*)Stack.topEntry)->insertionPoint == node)
+			dontDelete = true;
+
+		if(!dontDelete)
+			delete node;
 		reconnectAllVertical();
 
 	}
 
 	//delete text
-	void backSpace()
+	void backSpace(bool isFromMain=false)
 	{
 		if (!current || (x==1 && y==1 && head->ch!='\n'))
 			return;
@@ -825,6 +860,30 @@ public:
 			return;
 		}
 		Node* temp = current;
+
+		//storing deletions in deletion stack for undoing
+		if (isFromMain)
+		{
+
+			if (Stack.deletionActivated == false && ((current->ch >= 'A' && current->ch <= 'Z') || (current->ch >= 'a' && current->ch <= 'z')))
+			{
+				Stack.activateDeletion();
+				Stack.addToDeletion(current);
+			}
+			else if (Stack.deletionActivated == true && ((current->ch >= 'A' && current->ch <= 'Z') || (current->ch >= 'a' && current->ch <= 'z')))
+			{
+				Stack.addToDeletion(current);
+			}
+			else if (Stack.deletionActivated == true && current->ch == ' ')
+			{
+				Stack.addToDeletion(current);
+				Stack.deactivate();
+			}
+			else if (Stack.deletionActivated == true && (current->ch == '\n' || current->left == nullptr || current->left->ch == '\n'))
+			{
+				Stack.deactivate();
+			}
+		}
 
 		//backspace the first character of a line that has more than 1 character
 		if (current->left == nullptr && x != 1 && current->right)
@@ -933,7 +992,7 @@ public:
 	}
 
 	//insert text
-	bool insert(char ch)
+	bool insert(char ch, Node* optional=nullptr)
 	{
 		if (current && current->ch == '\n')
 		{
@@ -942,7 +1001,15 @@ public:
 			return true;
 		}
 
-		Node* temp = new Node(ch);
+		Node* temp;
+		if (optional)
+		{
+			temp = optional;
+		}
+		else
+		{
+			temp = new Node(ch);
+		}
 
 		//insert when notepad is empty
 		if (head == nullptr)
@@ -1119,27 +1186,18 @@ public:
 				cout << " ";
 			}
 		}
-		/*gotoxy(600, 600);
-		if (current)
-		{
-			cout << current->newLine << ' ';
-			current->ch == '\n' ? cout << "\\n" : current->ch==' '?cout<<"SPACE": cout<<current->ch<<"       ";
-		}*/
-
-		
-
 		// After printing, move the cursor back to its original position
 		gotoxy(x, y);
 	}
 
-	void undoInsertion()
+	void undo()
 	{
 		if (Stack.isEmpty())
 			return;
 		if (Stack.topEntry->isInsertion)
 		{
 			Stack.deactivate();
-			while (((Insertion*)Stack.topEntry)->endingNode != Stack.topEntry->startingNode)
+			while (((Insertion*)Stack.topEntry)->endingNode != ((Insertion*)Stack.topEntry)->startingNode)
 			{
 				moveCurrentTo(((Insertion*)Stack.topEntry)->endingNode);
 				((Insertion*)Stack.topEntry)->decrementEndingNode();
@@ -1147,6 +1205,19 @@ public:
 			}
 			moveCurrentTo(((Insertion*)Stack.topEntry)->startingNode);
 			backSpace();
+			Stack.pop();
+		}
+		else if (!Stack.topEntry->isInsertion)
+		{
+			Stack.deactivate();
+			if (((Deletion*)Stack.topEntry)->insertionPoint)
+				moveCurrentTo(((Deletion*)Stack.topEntry)->insertionPoint);
+			while (!((Deletion*)Stack.topEntry)->isEmpty())
+			{
+				Node* temp = ((Deletion*)Stack.topEntry)->head->node;
+				((Deletion*)Stack.topEntry)->incrementStartingNode();
+				insert(' ', temp);
+			}
 			Stack.pop();
 		}
 	}
