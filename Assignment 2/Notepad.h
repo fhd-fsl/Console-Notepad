@@ -14,12 +14,6 @@ struct coord
 	int y;
 };
 
-void gotoxy(int x, int y)
-{
-	COORD c = { x, y };
-	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
-}
-
 class Notepad
 {
 public:
@@ -34,6 +28,7 @@ public:
 	//cursor coordinates(point to current pointer)
 	int x;
 	int y;
+
 
 	//constructor destructor
 	Notepad(int maxX, int maxY, stack& Stack ): Stack(Stack)
@@ -679,6 +674,41 @@ public:
 		if (!node)
 			return;
 
+		if (current == node)
+		{
+			if (currDir == 'R')
+			{
+				if (moveRight());
+				else if (moveLeft());
+			}
+			else if (currDir == 'L')
+			{
+				if (moveLeft());
+				else if (moveRight());
+			}
+		}
+
+		bool ret = false;
+		if (head == node)
+		{
+			if (head->right)
+			{
+				head = head->right;
+			}
+			else if (head->down)
+				head = head->down;
+			else
+			{
+				head->ch = '\n';
+				current = head;
+				currRow = head;
+				x = 1;
+				y = 1;
+				ret = true;
+			}
+		}
+
+		//INSERTION ENTRY
 		//if a node is about to be deleted and it is in insertion stack, move the pointer in insertion stack accordingly
 		if (!Stack.isEmpty())
 		{
@@ -715,40 +745,20 @@ public:
 					}
 					currentEntry = currentEntry->bottom;
 				}
+				else
+				{
+					if (!((Deletion*)Stack.topEntry)->isEmpty() && ((Deletion*)Stack.topEntry)->insertionPoint == node)
+					{
+						((Deletion*)Stack.topEntry)->insertionPoint = head;
+						((Deletion*)Stack.topEntry)->head->node->newLine = true;
+					}
+				}
+
 			}
 		}
-		if (current == node)
-		{
-			if (currDir == 'R')
-			{
-				if (moveRight());
-				else if (moveLeft());
-			}
-			else if( currDir=='L')
-			{
-				if (moveLeft());
-				else if (moveRight());
-			}
-		}
+		if (ret)
+			return;
 		
-		if (head == node)
-		{
-			if (head->right)
-			{
-				head = head->right;
-			}
-			else if (head->down)
-				head = head->down;
-			else
-			{
-				head->ch='\n';
-				current = head;
-				currRow = head;
-				x = 1;
-				y = 1;
-				return;
-			}
-		}
 
 
 		//if node is in middle or end
@@ -810,6 +820,7 @@ public:
 			currRow = startOfRow(current);
 		}
 
+		//DELETION ENTRY
 		//if a node is about to be deleted and it is in deletion stack, don't delete
 		bool dontDelete = false;
 		if (!Stack.isEmpty())
@@ -1000,11 +1011,12 @@ public:
 			x++;
 			return true;
 		}
-
+		
 		Node* temp;
 		if (optional)
 		{
 			temp = optional;
+			ch = temp->ch;
 		}
 		else
 		{
@@ -1064,8 +1076,9 @@ public:
 					if (!makeSpace(current))
 						return false;
 					currRow = startOfRow(current);
-					delete temp;
-					insert(ch);
+					if(!optional)
+						delete temp;
+					insert(ch, optional);
 				}
 				//charavter is a space, add it to next line
 				else

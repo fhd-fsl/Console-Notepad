@@ -1,5 +1,14 @@
 #pragma once
 
+#include<iostream>
+using namespace std;
+Node* baboing;
+
+void gotoxy(int x, int y)
+{
+	COORD c = { x, y };
+	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
+}
 //Parent entry class that will store 1 insertion/deletion operation in stack
 class Entry
 {
@@ -106,6 +115,10 @@ struct Deletion : public Entry
 
 	void add(Node* node)
 	{
+		if (node->ch == 'y')
+		{
+			baboing = node;
+		}
 		NodeDp* temp = new NodeDp(node);
 		if (isEmpty())
 		{
@@ -117,6 +130,26 @@ struct Deletion : public Entry
 			head = temp;
 		}
 		setInsertionPoint();
+		print();
+	}
+	void print()
+	{
+		int startingx = 0;
+		int startingy = 20;
+		if (isEmpty())
+			return;
+		NodeDp* temp = head;
+		
+		gotoxy(startingx, startingy);
+		cout << "Ins: " << this->insertionPoint->ch;
+		startingy++;
+		while (temp)
+		{
+			gotoxy(startingx++, startingy);
+			cout << temp->node->ch;
+			temp = temp->next;
+		}
+		cout << "                 ";
 	}
 
 	void incrementStartingNode()
@@ -151,6 +184,10 @@ struct Deletion : public Entry
 				{
 					insertionPoint = insertionPoint->right;
 				}
+			}
+			else if (!insertionPoint)
+			{
+				insertionPoint = head->node;
 			}
 		}
 	}
