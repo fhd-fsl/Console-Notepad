@@ -1,12 +1,399 @@
-#pragma once
-#include "Node.h"
-#include<iostream>
-#include "stack.h"
+
+struct Node
+{
+	char ch;
+	Node* up;
+	Node* down;
+	Node* left;
+	Node* right;
+	bool newLine;
+
+
+	Node(char ch = '\0') :ch(ch)
+	{
+		up = nullptr;
+		down = nullptr;
+		left = nullptr;
+		right = nullptr;
+		newLine = 0;
+	}
+};
+
+Node* baboing;
+
+void gotoxy(int x, int y)
+{
+	COORD c = { x, y };
+	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
+}
+//Parent entry class that will store 1 insertion/deletion operation in stack
+class Entry
+{
+public:
+	bool isInsertion;
+	Entry* top;
+	Entry* bottom;
+
+
+	Entry()
+	{
+		top = nullptr;
+		bottom = nullptr;
+	}
+	virtual ~Entry()
+	{}
+
+	//updates endNode pointer for insertion
+	virtual void add(Node* node)
+	{}
+};
+
+struct Insertion : public Entry
+{
+	Node* startingNode;
+	Node* endingNode;
+	Insertion() : Entry()
+	{
+		this->isInsertion = true;
+		startingNode = nullptr;
+		endingNode = nullptr;
+	}
+
+	void add(Node* node)
+	{
+		if (startingNode == nullptr)
+		{
+			startingNode = node;
+		}
+		endingNode = node;
+	}
+	void decrementEndingNode()
+	{
+		if (endingNode->left)
+		{
+			endingNode = endingNode->left;
+
+		}
+		else
+		{
+			if (endingNode->up)
+			{
+				endingNode = endingNode->up;
+			}
+			while (endingNode->right != nullptr)
+			{
+				endingNode = endingNode->right;
+			}
+		}
+	}
+};
+
+struct NodeDp
+{
+	Node* node;
+	NodeDp* next;
+
+	NodeDp(Node* node = nullptr)
+	{
+		this->node = node;
+		this->next = nullptr;
+	}
+};
+struct Deletion : public Entry
+{
+	Node* insertionPoint;
+	NodeDp* head;
+
+	Deletion() : Entry()
+	{
+		isInsertion = false;
+		head = nullptr;
+		insertionPoint = nullptr;
+	}
+	~Deletion()
+	{
+		NodeDp* temp = head;
+		while (head)
+		{
+			temp = head;
+			head = head->next;
+			delete temp;
+		}
+	}
+	void deleteNodes()
+	{
+		NodeDp* temp = head;
+		while (temp)
+		{
+			delete temp->node;
+			temp = temp->next;
+		}
+	}
+	bool isEmpty()
+	{
+		return head == nullptr;
+	}
+
+	void add(Node* node)
+	{
+
+		NodeDp* temp = new NodeDp(node);
+		if (isEmpty())
+		{
+			head = temp;
+		}
+		else
+		{
+			temp->next = head;
+			head = temp;
+		}
+		setInsertionPoint();
+		//print();
+	}
+	void print()
+	{
+		int startingx = 0;
+		int startingy = 20;
+		if (isEmpty())
+			return;
+		NodeDp* temp = head;
+
+		gotoxy(startingx, startingy);
+		cout << "Ins: " << this->insertionPoint->ch;
+		startingy++;
+		while (temp)
+		{
+			gotoxy(startingx++, startingy);
+			cout << temp->node->ch;
+			temp = temp->next;
+		}
+		cout << "                 ";
+	}
+
+	void incrementStartingNode()
+	{
+		if (!isEmpty())
+		{
+			NodeDp* temp = head;
+			head = head->next;
+			delete temp;
+		}
+	}
+	Node* getStartingNode()
+	{
+		if (!head)
+			return nullptr;
+		else
+			return head->node;
+	}
+	void setInsertionPoint()
+	{
+		if (!isEmpty())
+		{
+			if (head->node)
+			{
+				if (head->node->left)
+				{
+					insertionPoint = head->node->left;
+				}
+				else if (head->node->up)
+				{
+					insertionPoint = head->node->up;
+					while (insertionPoint->right)
+					{
+						insertionPoint = insertionPoint->right;
+					}
+				}
+				else if (!insertionPoint)
+				{
+					insertionPoint = head->node;
+				}
+			}
+		}
+	}
+};
 
 
 
+struct stack
+{
+	Entry* topEntry;
+	Entry* lastEntry;
+	bool insertionActivated;
+	bool deletionActivated;
+	const int maxSize = 5;
+	int currSize = 0;
 
-using namespace std;
+	stack()
+	{
+		topEntry = nullptr;
+		lastEntry = nullptr;
+		insertionActivated = 0;
+		deletionActivated = 0;
+	}
+	~stack()
+	{
+		lastEntry = topEntry;
+		while (lastEntry)
+		{
+			lastEntry = topEntry->bottom;
+			delete topEntry;
+			topEntry = lastEntry;
+		}
+	}
+	bool isFull()
+	{
+		return currSize >= maxSize;
+	}
+	bool isEmpty()
+	{
+		return topEntry == nullptr;
+	}
+	bool topIsInsertion()
+	{
+		if (topEntry == nullptr)
+			return false;
+		else
+			return topEntry->isInsertion;
+	}
+	void removeLastEntry()
+	{
+		if (lastEntry == nullptr)
+			return;
+		if (lastEntry == topEntry)
+			topEntry = nullptr;
+
+		Entry* temp = lastEntry;
+		lastEntry = lastEntry->top;
+		if (lastEntry)
+			lastEntry->bottom = nullptr;
+		if (!temp->isInsertion)
+			((Deletion*)temp)->deleteNodes();
+		delete temp;
+		currSize--;
+	}
+	void pop()
+	{
+		if (!topEntry)
+			return;
+		if (topEntry == lastEntry)
+			lastEntry = nullptr;
+		Entry* temp = topEntry;
+		this->topEntry = topEntry->bottom;
+		currSize--;
+		delete temp;
+	}
+
+
+	void activateInsertion()
+	{
+		if (insertionActivated == 1)
+			return;
+		insertionActivated = 1;
+		deletionActivated = 0;
+		Entry* newInsertion = new Insertion();
+		if (isEmpty())
+		{
+			topEntry = newInsertion;
+			lastEntry = newInsertion;
+			currSize++;
+		}
+		else
+		{
+			if (isFull())
+			{
+				removeLastEntry();
+			}
+			newInsertion->bottom = topEntry;
+			topEntry->top = newInsertion;
+			topEntry = newInsertion;
+			currSize++;
+		}
+	}
+	void deactivate()
+	{
+		insertionActivated = 0;
+		deletionActivated = 0;
+	}
+	void activateDeletion()
+	{
+		if (deletionActivated == 1)
+			return;
+		insertionActivated = 0;
+		deletionActivated = 1;
+		Entry* newDeletion = new Deletion();
+		if (isEmpty())
+		{
+			topEntry = newDeletion;
+			lastEntry = newDeletion;
+			currSize++;
+		}
+		else
+		{
+			if (isFull())
+			{
+				removeLastEntry();
+			}
+			newDeletion->bottom = topEntry;
+			topEntry->top = newDeletion;
+			topEntry = newDeletion;
+			currSize++;
+		}
+	}
+
+	void addToInsertion(Node* node)
+	{
+		if (insertionActivated && topEntry->isInsertion)
+		{
+			topEntry->add(node);
+		}
+	}
+
+	void addToDeletion(Node* node)
+	{
+		if (deletionActivated && !topEntry->isInsertion)
+		{
+			topEntry->add(node);
+		}
+	}
+
+	void print()
+	{
+		if (isEmpty())
+		{
+			cout << "              \n                  \n                 \n";
+			return;
+
+		}
+		if (this->topEntry->isInsertion)
+		{
+			cout << "INSERTION\n";
+			cout << "Start: ";
+			((Insertion*)topEntry)->startingNode->ch == ' ' ? cout << "_" : ((Insertion*)topEntry)->startingNode->ch == '\n' ? cout << "\\n" : cout << ((Insertion*)topEntry)->startingNode->ch;
+			cout << "          " << endl;
+			cout << "End: ";
+			((Insertion*)topEntry)->endingNode->ch == ' ' ? cout << "_" : ((Insertion*)topEntry)->endingNode->ch == '\n' ? cout << "\\n" : cout << ((Insertion*)topEntry)->endingNode->ch;
+			cout << "          " << endl;
+		}
+		else
+		{
+			cout << "DELETION \n";
+			if (((Deletion*)topEntry)->isEmpty())
+				return;
+			NodeDp* curr = ((Deletion*)topEntry)->head;
+			cout << "Ins point: ";
+			((Deletion*)topEntry)->insertionPoint->ch == ' ' ? cout << "_" : ((Deletion*)topEntry)->insertionPoint->ch == '\n' ? cout << "\\n" : cout << ((Deletion*)topEntry)->insertionPoint->ch;
+			cout << "          " << endl;
+			while (curr)
+			{
+				curr->node->ch == ' ' ? cout << "_" : curr->node->ch == '\n' ? cout << "\\n" : cout << curr->node->ch;
+				curr = curr->next;
+			}
+			cout << "                 ";
+		}
+	}
+};
+
 
 struct coord
 {
@@ -21,6 +408,7 @@ public:
 	Node* current;
 	Node* currRow;
 	stack& Stack;
+	stack& redoStack;
 
 	int maxX;
 	int maxY;
@@ -31,7 +419,7 @@ public:
 
 
 	//constructor destructor
-	Notepad(int maxX, int maxY, stack& Stack ): Stack(Stack)
+	Notepad(int maxX, int maxY, stack& Stack , stack& redoStack): Stack(Stack), redoStack(redoStack)
 	{
 		head = new Node('\n');
 		head->newLine = true;
@@ -745,15 +1133,48 @@ public:
 					}
 					currentEntry = currentEntry->bottom;
 				}
-				else
-				{
-					if (!((Deletion*)Stack.topEntry)->isEmpty() && ((Deletion*)Stack.topEntry)->insertionPoint == node)
-					{
-						((Deletion*)Stack.topEntry)->insertionPoint = head;
-						((Deletion*)Stack.topEntry)->head->node->newLine = true;
-					}
-				}
 
+			}
+		}
+
+
+		//INSERTION ENTRY
+		//redo stack
+		if (!redoStack.isEmpty())
+		{
+			Entry* currentEntry = redoStack.topEntry;
+			for (int a = 0; a < redoStack.currSize; a++)
+			{
+				if (currentEntry->isInsertion)
+				{
+					if (((Insertion*)currentEntry)->startingNode == node)
+					{
+						Node* tempCurrent = current;
+						int tempX = x;
+
+						moveCurrentTo(node);
+						if (moveLeft());
+						else
+							moveRight();
+
+						((Insertion*)currentEntry)->startingNode = current;
+						moveCurrentTo(tempCurrent, (tempX == 1));
+					}
+					if (currentEntry->isInsertion && ((Insertion*)currentEntry)->endingNode == node)
+					{
+						Node* tempCurrent = current;
+						int tempX = x;
+
+						moveCurrentTo(node);
+						if (moveLeft());
+						else
+							moveRight();
+
+						((Insertion*)currentEntry)->endingNode = current;
+						moveCurrentTo(tempCurrent, (tempX == 1));
+					}
+					currentEntry = currentEntry->bottom;
+				}
 			}
 		}
 		if (ret)
@@ -849,6 +1270,34 @@ public:
 		if ( !Stack.isEmpty() && !Stack.topEntry->isInsertion && ((Deletion*)Stack.topEntry)->insertionPoint == node)
 			dontDelete = true;
 
+		//DELETION ENTRY
+		//redoStack
+		if (!redoStack.isEmpty())
+		{
+			Entry* currentEntry = redoStack.topEntry;
+			for (int a = 0; a < redoStack.currSize; a++)
+			{
+				if (!currentEntry->isInsertion)
+				{
+					NodeDp* temp = ((Deletion*)currentEntry)->head;
+					while (temp)
+					{
+						if (temp->node == node)
+						{
+							dontDelete = true;
+							break;
+						}
+						else
+							temp = temp->next;
+					}
+
+				}
+				currentEntry = currentEntry->bottom;
+			}
+		}
+		if (!redoStack.isEmpty() && !redoStack.topEntry->isInsertion && ((Deletion*)redoStack.topEntry)->insertionPoint == node)
+			dontDelete = true;
+
 		if(!dontDelete)
 			delete node;
 		reconnectAllVertical();
@@ -892,6 +1341,7 @@ public:
 			}
 			else if (Stack.deletionActivated == true && (current->ch == '\n' || current->left == nullptr || current->left->ch == '\n'))
 			{
+				((Deletion*)Stack.topEntry)->getStartingNode()->newLine = true;
 				Stack.deactivate();
 			}
 		}
@@ -1007,13 +1457,16 @@ public:
 	{
 		if (current && current->ch == '\n')
 		{
-			current->ch = ch;
+			if (optional)
+				current->ch = optional->ch;
+			else
+				current->ch = ch;
 			x++;
 			return true;
 		}
 		
 		Node* temp;
-		if (optional)
+		if (optional && optional!=current)
 		{
 			temp = optional;
 			ch = temp->ch;
@@ -1160,6 +1613,8 @@ public:
 		Node* currRow = head;
 		int rowNum = 1;
 
+		gotoxy(0, 20);
+		cout << head->ch;
 		while (currRow)
 		{
 			Node* current = currRow;
@@ -1207,9 +1662,39 @@ public:
 	{
 		if (Stack.isEmpty())
 			return;
+
+
 		if (Stack.topEntry->isInsertion)
 		{
 			Stack.deactivate();
+
+
+			///////////////// adding as deletion to redo stack ////////////////////
+			/**/redoStack.activateDeletion();
+			/**/Node* curr=((Insertion*)Stack.topEntry)->endingNode;
+			/**/while (curr != ((Insertion*)Stack.topEntry)->startingNode)
+			/**/{
+			/**/	redoStack.addToDeletion(curr);
+			/**/	if (curr->left)
+					{
+						curr = curr->left;
+					}
+					else
+					{
+						if (curr->up)
+						{
+							curr = curr->up;
+						}
+						while (curr->right != nullptr)
+						{
+							curr = curr->right;
+						}
+					}
+			/**/}
+			/**/redoStack.addToDeletion(curr);
+			/**/redoStack.deactivate();
+			///////////////// adding as deletion to redo stack ////////////////////
+			
 			while (((Insertion*)Stack.topEntry)->endingNode != ((Insertion*)Stack.topEntry)->startingNode)
 			{
 				moveCurrentTo(((Insertion*)Stack.topEntry)->endingNode);
@@ -1222,9 +1707,27 @@ public:
 		}
 		else if (!Stack.topEntry->isInsertion)
 		{
+
 			Stack.deactivate();
+
+			///////////////// adding as insertion to redo stack ////////////////////
+			/**/redoStack.activateInsertion();									/**/	
+			/**/NodeDp* curr = ((Deletion*)Stack.topEntry)->head;				/**/
+			/**/while (curr)													/**/
+			/**/{																/**/
+			/**/	redoStack.addToInsertion(curr->node);						/**/
+			/**/	curr = curr->next;											/**/	
+			/**/}		
+			/**/redoStack.deactivate();
+			///////////////// adding as insertion to redo stack ////////////////////
+
+			
+
 			if (((Deletion*)Stack.topEntry)->insertionPoint)
 				moveCurrentTo(((Deletion*)Stack.topEntry)->insertionPoint);
+			/*if (((Deletion*)Stack.topEntry)->getStartingNode()->newLine == true)
+				insert(' ');*/
+			
 			while (!((Deletion*)Stack.topEntry)->isEmpty())
 			{
 				Node* temp = ((Deletion*)Stack.topEntry)->head->node;
@@ -1232,6 +1735,86 @@ public:
 				insert(' ', temp);
 			}
 			Stack.pop();
+		}
+	}
+
+
+
+	void redo()
+	{
+		if (redoStack.isEmpty())
+			return;
+		if (redoStack.topEntry->isInsertion)
+		{
+			redoStack.deactivate();
+
+
+			///////////////// adding as deletion to undo stack ////////////////////
+			/**/Stack.activateDeletion();
+			/**/Node* curr = ((Insertion*)redoStack.topEntry)->endingNode;
+			/**/while (curr != ((Insertion*)redoStack.topEntry)->startingNode)
+			{
+				redoStack.addToDeletion(curr);
+				if (curr->left)
+				{
+					curr = curr->left;
+				}
+				else
+				{
+					if (curr->up)
+					{
+						curr = curr->up;
+					}
+					while (curr->right != nullptr)
+					{
+						curr = curr->right;
+					}
+				}
+			}
+			/**/Stack.addToDeletion(curr);
+			/**/Stack.deactivate();
+			///////////////// adding as deletion to undo stack ////////////////////
+
+
+			while (((Insertion*)redoStack.topEntry)->endingNode != ((Insertion*)redoStack.topEntry)->startingNode)
+			{
+				moveCurrentTo(((Insertion*)redoStack.topEntry)->endingNode);
+				((Insertion*)redoStack.topEntry)->decrementEndingNode();
+				backSpace();
+			}
+			moveCurrentTo(((Insertion*)redoStack.topEntry)->startingNode);
+			backSpace();
+			redoStack.pop();
+		}
+		else if (!redoStack.topEntry->isInsertion)
+		{
+
+			redoStack.deactivate();
+
+			///////////////// adding as insertion to redo stack ////////////////////
+			/**/Stack.activateInsertion();										/**/
+			/**/NodeDp* curr = ((Deletion*)redoStack.topEntry)->head;			/**/
+			/**/while (curr)													/**/
+			/**/ {																/**/
+			/**/	Stack.addToInsertion(curr->node);							/**/
+			/**/	curr = curr->next;											/**/
+			/**/
+				 }			
+			/**/Stack.deactivate();
+			///////////////// adding as insertion to redo stack ////////////////////
+
+			if (((Deletion*)redoStack.topEntry)->insertionPoint)
+				moveCurrentTo(((Deletion*)redoStack.topEntry)->insertionPoint);
+			if (((Deletion*)redoStack.topEntry)->getStartingNode()->newLine == true)
+				insert(' ');
+			while (!((Deletion*)redoStack.topEntry)->isEmpty())
+			{
+				Node* temp = ((Deletion*)redoStack.topEntry)->head->node;
+				((Deletion*)redoStack.topEntry)->incrementStartingNode();
+				insert(' ', temp);
+			}
+			redoStack.pop();
+			
 		}
 	}
 

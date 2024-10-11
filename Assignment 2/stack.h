@@ -96,16 +96,20 @@ struct Deletion : public Entry
 	~Deletion()
 	{
 		NodeDp* temp = head;
-		while (temp)
-		{
-			delete temp->node;
-			temp = temp->next;
-		}
 		while (head)
 		{
 			temp = head;
 			head = head->next;
 			delete temp;
+		}
+	}
+	void deleteNodes()
+	{
+		NodeDp* temp = head;
+		while (temp)
+		{
+			delete temp->node;
+			temp = temp->next;
 		}
 	}
 	bool isEmpty()
@@ -115,10 +119,7 @@ struct Deletion : public Entry
 
 	void add(Node* node)
 	{
-		if (node->ch == 'y')
-		{
-			baboing = node;
-		}
+		
 		NodeDp* temp = new NodeDp(node);
 		if (isEmpty())
 		{
@@ -130,7 +131,7 @@ struct Deletion : public Entry
 			head = temp;
 		}
 		setInsertionPoint();
-		print();
+		//print();
 	}
 	void print()
 	{
@@ -172,22 +173,24 @@ struct Deletion : public Entry
 	{
 		if (!isEmpty())
 		{
- 			
-			if (head->node->left)
+			if (head->node)
 			{
-				insertionPoint = head->node->left;
-			}
-			else if (head->node->up)
-			{
-				insertionPoint = head->node->up;
-				while (insertionPoint->right)
+					if (head->node->left)
 				{
-					insertionPoint = insertionPoint->right;
+					insertionPoint = head->node->left;
 				}
-			}
-			else if (!insertionPoint)
-			{
-				insertionPoint = head->node;
+				else if (head->node->up)
+				{
+					insertionPoint = head->node->up;
+					while (insertionPoint->right)
+					{
+						insertionPoint = insertionPoint->right;
+					}
+				}
+				else if (!insertionPoint)
+				{
+					insertionPoint = head->node;
+				}
 			}
 		}
 	}
@@ -247,6 +250,8 @@ struct stack
 		lastEntry = lastEntry->top;
 		if (lastEntry)
 			lastEntry->bottom = nullptr;
+		if (!temp->isInsertion)
+			((Deletion*)temp)->deleteNodes();
 		delete temp;
 		currSize--;
 	}
@@ -335,4 +340,39 @@ struct stack
 		}
 	}
 
+	void print()
+	{
+		if (isEmpty())
+		{
+			cout << "              \n                  \n                 \n";
+			return;
+
+		}
+		if (this->topEntry->isInsertion)
+		{
+			cout << "INSERTION\n";
+			cout << "Start: ";
+			((Insertion*)topEntry)->startingNode->ch == ' ' ? cout << "_" : ((Insertion*)topEntry)->startingNode->ch == '\n' ? cout << "\\n" : cout << ((Insertion*)topEntry)->startingNode->ch;
+			cout << "          " << endl;
+			cout << "End: ";
+			((Insertion*)topEntry)->endingNode->ch == ' ' ? cout << "_" : ((Insertion*)topEntry)->endingNode->ch == '\n' ? cout << "\\n" : cout << ((Insertion*)topEntry)->endingNode->ch;
+			cout << "          " << endl;
+		}
+		else
+		{
+			cout << "DELETION \n";
+			if (((Deletion*)topEntry)->isEmpty())
+				return;
+			NodeDp* curr = ((Deletion*)topEntry)->head;
+			cout << "Ins point: ";
+			((Deletion*)topEntry)->insertionPoint->ch == ' ' ? cout << "_" : ((Deletion*)topEntry)->insertionPoint->ch == '\n' ? cout << "\\n" : cout << ((Deletion*)topEntry)->insertionPoint->ch;
+			cout << "          " << endl;
+			while (curr)
+			{
+				curr->node->ch == ' ' ? cout << "_" : curr->node->ch == '\n' ? cout << "\\n" : cout << curr->node->ch;
+				curr= curr->next;
+			}
+			cout << "                 ";
+		}
+	}
 };
