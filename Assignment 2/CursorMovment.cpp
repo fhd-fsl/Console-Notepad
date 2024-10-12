@@ -1,5 +1,7 @@
 #include <iostream>
 #include <Windows.h>
+#include<fstream>
+#include<filesystem>
 using namespace std;
 
 
@@ -26,6 +28,7 @@ struct NodeDp
 {
 	Node* node;
 	NodeDp* next;
+	char backup;
 
 	NodeDp(Node* node = nullptr)
 	{
@@ -70,6 +73,8 @@ public:
 	}
 	bool isEmpty()
 	{
+		if(this==nullptr)
+			return true;
 		return head == nullptr;
 	}
 
@@ -104,6 +109,7 @@ struct Insertion : public Entry
 	void add(Node* node)
 	{
 		NodeDp* temp = new NodeDp(node);
+		temp->backup = node->ch;
 		if (head== nullptr)
 		{
 			head = temp;
@@ -159,6 +165,7 @@ struct Deletion : public Entry
 	{
 
 		NodeDp* temp = new NodeDp(node);
+		temp->backup = node->ch;
 		if (isEmpty())
 		{
 			head = temp;
@@ -169,7 +176,6 @@ struct Deletion : public Entry
 			head = temp;
 		}
 		setInsertionPoint();
-		//print();
 	}
 	void print()
 	{
@@ -238,7 +244,7 @@ struct stack
 	bool insertionActivated;
 	bool deletionActivated;
 	const int maxSize = 5;
-	int currSize = 0;
+	int currSize;
 
 	stack()
 	{
@@ -246,6 +252,7 @@ struct stack
 		lastEntry = nullptr;
 		insertionActivated = 0;
 		deletionActivated = 0;
+		currSize = 0;
 	}
 	~stack()
 	{
@@ -256,6 +263,21 @@ struct stack
 			delete topEntry;
 			topEntry = lastEntry;
 		}
+	}
+	void clear()
+	{
+		lastEntry = topEntry;
+		while (lastEntry)
+		{
+			lastEntry = topEntry->bottom;
+			delete topEntry;
+			topEntry = lastEntry;
+		}
+		topEntry = nullptr;
+		lastEntry = nullptr;
+		insertionActivated = 0;
+		deletionActivated = 0;
+		currSize = 0;
 	}
 	bool isFull()
 	{
@@ -392,6 +414,7 @@ struct stack
 				curr->node->ch == ' ' ? cout << "_" : curr->node->ch == '\n' ? cout << "\\n" : cout << curr->node->ch;
 				curr = curr->next;
 			}
+			cout << "                       " << endl << "                 ";
 		}
 		else
 		{
@@ -427,6 +450,7 @@ public:
 	Node* currRow;
 	stack& Stack;
 	stack& redoStack;
+	filesystem::path currentFile;
 
 	int maxX;
 	int maxY;
@@ -445,6 +469,7 @@ public:
 		currRow = current;
 		this->maxX = maxX;
 		this->maxY = maxY;
+		currentFile.clear();
 
 		x = 1;
 		y = 1;
@@ -463,6 +488,42 @@ public:
 			}
 			head = temp;
 		}
+	}
+	bool hasFile() {
+		return !currentFile.empty();
+	}
+
+	void linkToFile(filesystem::path& filePath) {
+		currentFile = filePath;
+	}
+	void unlinkFile() {
+		currentFile.clear();
+	}
+
+	void clear()
+	{
+		while (head)
+		{
+			Node* temp = head->down;
+			while (head)
+			{
+				current = head;
+				head = head->right;
+				delete current;
+			}
+			head = temp;
+		}
+		Stack.clear();
+		redoStack.clear();
+		head = new Node('\n');
+		head->newLine = true;
+		current = head;
+		currRow = current;
+		this->maxX = maxX;
+		this->maxY = maxY;
+
+		x = 1;
+		y = 1;
 	}
 
 	//moves current to the specified node
@@ -1307,7 +1368,31 @@ public:
 			}
 		}
 		if (!redoStack.isEmpty() && !redoStack.topEntry->isInsertion && ((Deletion*)redoStack.topEntry)->insertionPoint == node)
-			dontDelete = true;
+		{
+			if (((Deletion*)redoStack.topEntry)->insertionPoint->left)
+				((Deletion*)redoStack.topEntry)->insertionPoint = ((Deletion*)redoStack.topEntry)->insertionPoint->left;
+			else if (((Deletion*)redoStack.topEntry)->insertionPoint->up)
+			{
+				((Deletion*)redoStack.topEntry)->insertionPoint = ((Deletion*)redoStack.topEntry)->insertionPoint->up;
+				while (((Deletion*)redoStack.topEntry)->insertionPoint->right)
+					((Deletion*)redoStack.topEntry)->insertionPoint = ((Deletion*)redoStack.topEntry)->insertionPoint->right;
+			}
+			else
+				((Deletion*)redoStack.topEntry)->insertionPoint = head;
+		}
+		if (!Stack.isEmpty() && !Stack.topEntry->isInsertion && ((Deletion*)Stack.topEntry)->insertionPoint == node)
+		{
+			if (((Deletion*)Stack.topEntry)->insertionPoint->left)
+				((Deletion*)Stack.topEntry)->insertionPoint = ((Deletion*)Stack.topEntry)->insertionPoint->left;
+			else if (((Deletion*)Stack.topEntry)->insertionPoint->up)
+			{
+				((Deletion*)Stack.topEntry)->insertionPoint = ((Deletion*)Stack.topEntry)->insertionPoint->up;
+				while (((Deletion*)Stack.topEntry)->insertionPoint->right)
+					((Deletion*)Stack.topEntry)->insertionPoint = ((Deletion*)Stack.topEntry)->insertionPoint->right;
+			}
+			else
+				((Deletion*)Stack.topEntry)->insertionPoint = head;
+		}
 
 		if (!dontDelete)
 			delete node;
@@ -1638,9 +1723,6 @@ public:
 	{
 		Node* currRow = head;
 		int rowNum = 1;
-
-		gotoxy(0, 20);
-		cout << head->ch;
 		while (currRow)
 		{
 			Node* current = currRow;
@@ -1657,7 +1739,6 @@ public:
 					cout << current->ch;
 					colNum++;
 				}
-
 				current = current->right;
 
 			}
@@ -1740,14 +1821,24 @@ public:
 
 			if (((Deletion*)Stack.topEntry)->insertionPoint)
 				moveCurrentTo(((Deletion*)Stack.topEntry)->insertionPoint);
-			if (!Stack.topEntry->isEmpty() && Stack.topEntry->getStartingNode()->newLine == true && current->ch!='\n')
-				insert(' ');
+			if (!Stack.topEntry->isEmpty() && Stack.topEntry->getStartingNode()->newLine == true)
+			{
+				Stack.topEntry->getStartingNode()->newLine = false;
+				if (current->ch != '\n')
+					insert(' ');
+				else
+					enter();
+			}
 
 			while (!Stack.topEntry->isEmpty())
 			{
 				Node* temp = Stack.topEntry->head->node;
+				char backup = Stack.topEntry->head->backup;
 				((Deletion*)Stack.topEntry)->incrementStartingNode();
-				insert(temp->ch, temp);
+				if (temp->ch != '\n')
+					insert(temp->ch, temp);
+				else
+					insert(backup);
 			}
 			Stack.pop();
 		}
@@ -1836,8 +1927,11 @@ public:
 			while (!redoStack.topEntry->isEmpty())
 			{
 				Node* temp = redoStack.topEntry->head->node;
-				((Deletion*)redoStack.topEntry)->incrementStartingNode();
-				insert(temp->ch, temp);
+				char backup = redoStack.topEntry->head->backup;
+				if (temp->ch != '\n')
+					insert(temp->ch, temp);
+				else
+					 insert(backup);
 			}
 			redoStack.pop();
 
@@ -1847,6 +1941,159 @@ public:
 };
 
 
+
+struct Menu
+{
+private:
+	filesystem::path inputFileName() {
+		filesystem::path filePath;
+		char ch;
+		cout << "Enter file name (end by '.'): ";
+
+		while (std::cin.get(ch) && ch != '.') {
+			if(ch!='\n')
+				filePath += ch;  // Construct file path one character at a time
+		}
+
+		filePath += ".txt";  // Append the .txt extension
+		return filePath;
+	}
+
+	void saveNotepadToFile(ostream& file, Notepad& notepad)
+	{
+		Node* currRow = notepad.head;
+		while (currRow)
+		{
+			Node* curr = currRow;
+			while (curr)
+			{
+				//press enter
+				if (curr->newLine && curr!=notepad.head)
+				{
+					file.put('.');
+				}
+
+				//no need to save \n as enter will deal with it
+				if(curr->ch!='\n')
+					file.put(curr->ch);
+
+				curr = curr->right;
+			}
+			currRow = currRow->down;
+
+			//space for word wrapping
+			if (currRow && currRow->newLine == false)
+			{
+				file.put(' ');
+			}
+		}
+	}
+	void loadFileToNotepad(ifstream& file, Notepad& notepad)
+	{
+		char ch;
+		while (file.get(ch))
+		{
+			if (ch == '.') 
+			{
+				notepad.enter(); 
+			}
+			else 
+			{
+				notepad.insert(ch);  
+			}
+		}
+	}
+public:
+	int display()
+	{
+		int choice=0;
+		do {
+			system("cls");
+			cout << "________Main Menu_______\n";
+			cout << "1. Create New File\n";
+			cout << "2. Save File\n";
+			cout << "3. Load File\n";
+			cout << "4. Exit\n";
+			cout << "Enter your choice: ";
+			cin >> choice;
+
+			if (choice < 1 || choice > 4) {
+				cout << "Invalid choice, please try again.\n";
+				Sleep(1000); 
+			}
+		} while (choice < 1 || choice > 4);
+		return choice;
+
+	}
+	bool createFile(Notepad& notepad)
+	{
+		filesystem::path filePath = inputFileName();
+		ofstream file(filePath);  
+
+		if (file.is_open()) {
+			notepad.linkToFile(filePath);  
+			file.close();
+			return true;
+		}
+		else {
+			cout << "File creation error"<<endl;
+			Sleep(1000);
+			file.close();
+			return false;
+		}
+		
+	}
+
+	void saveFile(Notepad& notepad)
+	{
+		if (!notepad.hasFile())
+		{
+			cout << "No file loaded." << endl;
+			Sleep(1000);
+			return;
+		}
+		ofstream file(notepad.currentFile, std::ios::out | std::ios::trunc); 
+		if (file.is_open()) {
+			saveNotepadToFile(file, notepad); 
+			cout<<"Saved."<<endl;
+			Sleep(1000);
+		}
+		else {
+			cout << "Failed to open file."<<endl;
+			Sleep(1000);
+		}
+		file.close();
+	}
+
+	bool loadFile(Notepad& notepad)
+	{
+		filesystem::path filePath = inputFileName();  
+		if (filesystem::exists(filePath)) 
+		{  	
+			ifstream file(filePath, ios::in);  
+			if (file.is_open()) {
+				notepad.clear();  
+				loadFileToNotepad(file, notepad); 
+				notepad.linkToFile(filePath); 
+				file.close();
+				return true;
+			}
+			else {
+				cout << "Failed to open file."<<endl;
+				Sleep(1000);
+				return false;
+			}
+
+			
+		}
+		else {
+			cout << "File does not exist."<<endl;
+			Sleep(1000);  
+			return false;
+		}
+	}
+
+};
 
 
 int main(int argc, char* argv[]) {
@@ -1862,6 +2109,7 @@ int main(int argc, char* argv[]) {
 	const int maxX = (screen.srWindow.Right + 1) * 0.2;  
 	const int maxY = (screen.srWindow.Bottom + 1) * 0.2; //set boundaries for cursor
 
+	Menu menu;
 	stack shtack;
 	stack redoStack;
 	Notepad notepad(maxX, maxY, shtack, redoStack);
@@ -1870,172 +2118,214 @@ int main(int argc, char* argv[]) {
 	bool Running = true;
 	
 
-
-	for (int a = 0; a <= maxY; a++)
-	{
-		cout << '|';
-		int b;
-		if (a == 0)
-		{
-			cout << "Notepad:";
-			b = 8;
-		}
-		else
-			b = 0;
-		for (;b < maxX; b++)
-		{
-			cout << ' ';
-		}
-		cout << '|' << endl;
-	}
-	for (int b = 0; b < maxX + 2; b++)
-	{
-		cout << '_';
-	}
-	cout << endl;
-
-	int x = 1, y = 1;
-	gotoxy(x, y);
-	//programs main loop
 	while (Running) {
 
+		int c = menu.display();
+		bool createdSuccessfully = false;
+		bool loadedSuccessfully = false;
+		switch (c)
+		{
+			case 1:
+				createdSuccessfully=menu.createFile(notepad);
+				break;
+
+			case 2:
+				menu.saveFile(notepad);
+				break;
+
+			case 3:
+				loadedSuccessfully = menu.loadFile(notepad);
+				break;
+
+			case 4:
+				return 0;
+		}
 		
 
-		// gets the systems current "event" count
-		GetNumberOfConsoleInputEvents(rhnd, &Events);
+		if (createdSuccessfully || loadedSuccessfully)
+		{
+			system("cls");
+			if(createdSuccessfully)
+				notepad.clear();
+			bool notepadRunning = true;
+			gotoxy(0, 0);
+			for (int a = 0; a <= maxY; a++)
+			{
+				cout << '|';
+				int b;
+				if (a == 0)
+				{
+					cout << "Notepad:";
+					b = 8;
+				}
+				else
+					b = 0;
+				for (;b < maxX; b++)
+				{
+					cout << ' ';
+				}
+				cout << '|' << endl;
+			}
+			for (int b = 0; b < maxX + 2; b++)
+			{
+				cout << '_';
+			}
+			cout << endl;
 
-		if (Events != 0) { // if something happened we will handle the events we want
+			int x = 1, y = 1;
+			gotoxy(x, y);
+			notepad.print();
+			//programs main loop
+			while (notepadRunning)
+			{
 
-			// create event buffer the size of how many Events
-			INPUT_RECORD eventBuffer[200];
+				// gets the systems current "event" count
+				GetNumberOfConsoleInputEvents(rhnd, &Events);
 
-			// fills the event buffer with the events and saves count in EventsRead
-			ReadConsoleInput(rhnd, eventBuffer, Events, &EventsRead);
-			
-			// loop through the event buffer using the saved count
-			for (DWORD i = 0; i < EventsRead; ++i) {
+				if (Events != 0) { // if something happened we will handle the events we want
 
-				// check if event[i] is a key event && if so is a press not a release
-				if (eventBuffer[i].EventType == KEY_EVENT && eventBuffer[i].Event.KeyEvent.bKeyDown) {
+					// create event buffer the size of how many Events
+					INPUT_RECORD eventBuffer[200];
 
-					
-					// check if the key press was an arrow key
-					switch (eventBuffer[i].Event.KeyEvent.wVirtualKeyCode) {
-				
-					//move the cursor as well as current pointer
-					case VK_UP: //up
-						notepad.moveUp();
-						shtack.deactivate();
-						break;
+					// fills the event buffer with the events and saves count in EventsRead
+					ReadConsoleInput(rhnd, eventBuffer, Events, &EventsRead);
 
-					case VK_DOWN: //down
-						notepad.moveDown();
-						shtack.deactivate();
-						break;
+					// loop through the event buffer using the saved count
+					for (DWORD i = 0; i < EventsRead; ++i) {
 
-					case VK_RIGHT: //right
-						notepad.moveRight();
-						shtack.deactivate();
-						break;
-
-					case VK_LEFT: //left
-						notepad.moveLeft();
-						shtack.deactivate();
-						break;
+						// check if event[i] is a key event && if so is a press not a release
+						if (eventBuffer[i].EventType == KEY_EVENT && eventBuffer[i].Event.KeyEvent.bKeyDown) {
 
 
-					default:
-						notepad.currRow = notepad.startOfRow(notepad.current);
-						notepad.head = notepad.currRow;
-						while (notepad.head->up)
-						{
-							notepad.head = notepad.head->up;
-						}
-						int keyCode = eventBuffer->Event.KeyEvent.uChar.AsciiChar;
+							// check if the key press was an arrow key
+							switch (eventBuffer[i].Event.KeyEvent.wVirtualKeyCode) {
 
-						//input
-						if (keyCode == ' ' || (keyCode >= 'A' && keyCode <= 'Z') || (keyCode >= 'a' && keyCode <= 'z')) {
+								//move the cursor as well as current pointer
+							case VK_UP: //up
+								notepad.moveUp();
+								shtack.deactivate();
+								break;
 
-							if (notepad.insert(static_cast<char>(keyCode)))
-							{
-								//actiavate insertion entry in stack if a char is pressed
-								if (shtack.insertionActivated == false && keyCode != ' ')
+							case VK_DOWN: //down
+								notepad.moveDown();
+								shtack.deactivate();
+								break;
+
+							case VK_RIGHT: //right
+								notepad.moveRight();
+								shtack.deactivate();
+								break;
+
+							case VK_LEFT: //left
+								notepad.moveLeft();
+								shtack.deactivate();
+								break;
+							case VK_ESCAPE:
+								notepadRunning = false;
+								break;
+
+
+							default:
+								notepad.currRow = notepad.startOfRow(notepad.current);
+								notepad.head = notepad.currRow;
+								while (notepad.head->up)
 								{
-									shtack.activateInsertion(notepad.head);
-									shtack.addToInsertion(notepad.current);
+									notepad.head = notepad.head->up;
 								}
-								//if insertion is activated and a space isn't entered, add the new node to the insertion entry
-								else if (shtack.insertionActivated == true && keyCode != ' ')
-								{
-									shtack.addToInsertion(notepad.current);
+								int keyCode = eventBuffer->Event.KeyEvent.uChar.AsciiChar;
+
+
+								//input
+								if (keyCode == ' ' || (keyCode >= 'A' && keyCode <= 'Z') || (keyCode >= 'a' && keyCode <= 'z')) {
+
+									if (notepad.insert(static_cast<char>(keyCode)))
+									{
+										//actiavate insertion entry in stack if a char is pressed
+										if (shtack.insertionActivated == false && keyCode != ' ')
+										{
+											shtack.activateInsertion(notepad.head);
+											shtack.addToInsertion(notepad.current);
+										}
+										//if insertion is activated and a space isn't entered, add the new node to the insertion entry
+										else if (shtack.insertionActivated == true && keyCode != ' ')
+										{
+											shtack.addToInsertion(notepad.current);
+										}
+										//if space is entered, finish taking input in undo stack (1 word completed)
+										else if (shtack.insertionActivated == true && keyCode == ' ')
+										{
+											shtack.addToInsertion(notepad.current);
+											shtack.deactivate();
+										}
+									}
+									redoStack.clear();
 								}
-								//if space is entered, finish taking input in undo stack (1 word completed)
-								else if (shtack.insertionActivated == true && keyCode == ' ')
+
+								//delete
+								else if (keyCode == 8)
 								{
-									shtack.addToInsertion(notepad.current);
+									notepad.backSpace(true);
+									redoStack.clear();
+								}
+
+								//emter
+								else if (keyCode == 13)
+								{
 									shtack.deactivate();
+									notepad.enter();
+									redoStack.clear();
 								}
+								//undo
+								else if (keyCode == 44)
+								{
+									notepad.undo();
+								}
+
+								//redo
+								else if (keyCode == 46)
+								{
+									notepad.redo();
+								}
+
+
+								notepad.currRow = notepad.startOfRow(notepad.current);
+								notepad.head = notepad.currRow;
+								while (notepad.head->up)
+								{
+									notepad.head = notepad.head->up;
+								}
+
+								
+
+								notepad.print();
+								
+								gotoxy(0, 15);
+								cout << "UNDO:\n";
+								shtack.print();
+
+
+								gotoxy(0, 20);
+								cout << "REDO:\n";
+								redoStack.print();
+
+								gotoxy(0, 24);
+								cout << "Head: ";
+								notepad.head->ch == '\n' ? cout << "\\n" : notepad.head->ch == ' ' ? cout << "_ " : cout << notepad.head->ch << ' ';
+								cout << endl;
+
+								cout << "Current: ";
+								notepad.current->ch == '\n' ? cout << "\\n" : notepad.current->ch == ' ' ? cout << "_ " : cout << notepad.current->ch << ' ';
+								cout << endl;
+								gotoxy(notepad.x, notepad.y);
+
+								break;
 							}
 						}
 
-						//delete
-						else if (keyCode == 8)
-						{
-							notepad.backSpace(true);
-						}
+					} // end EventsRead loop
 
-						//emter
-						else if (keyCode == 13)
-						{
-							shtack.deactivate();
-							notepad.enter();
-						}
-						//undo
-						else if (keyCode == 44)
-						{
-							notepad.undo();
-						}
-
-						//redo
-						else if (keyCode == 46)
-						{
-							notepad.redo();
-						}
-						notepad.currRow = notepad.startOfRow(notepad.current);
-						notepad.head = notepad.currRow;
-						while (notepad.head->up)
-						{
-							notepad.head = notepad.head->up;
-						}
-						notepad.print();
-						gotoxy(0, 15);
-						cout << "UNDO:\n";
-						shtack.print();
-
-
-						gotoxy(0, 20);
-						cout << "REDO:\n";
-						redoStack.print();
-
-						gotoxy(0, 24);
-						cout << "Head: ";
-						notepad.head->ch=='\n'? cout<<"\\n": notepad.head->ch==' '? cout<<"_ ": cout<<notepad.head->ch<<' ';
-						cout << endl;
-
-						cout << "Current: ";
-						notepad.current->ch == '\n' ? cout << "\\n" : notepad.current->ch == ' ' ? cout << "_ " : cout << notepad.current->ch << ' ';
-						cout << endl;
-
-						
-
-						gotoxy(notepad.x, notepad.y);
-						
-						break;
-					}
 				}
-
-			} // end EventsRead loop
-
+			}
 		}
 
 	} // end program loop
