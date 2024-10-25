@@ -5,39 +5,37 @@
 using namespace std;
 
 
-//struct Node
-//{
-//	char ch;
-//	Node* up;
-//	Node* down;
-//	Node* left;
-//	Node* right;
-//	bool newLine;
-//
-//
-//	Node(char ch = '\0') :ch(ch)
-//	{
-//		up = nullptr;
-//		down = nullptr;
-//		left = nullptr;
-//		right = nullptr;
-//		newLine = 0;
-//	}
-//};
-//struct NodeDp
-//{
-//	Node* node;
-//	NodeDp* next;
-//	char backup;
-//
-//	NodeDp(Node* node = nullptr)
-//	{
-//		this->node = node;
-//		this->next = nullptr;
-//	}
-//};
-#include "NAryTree.h"
+struct Node
+{
+	char ch;
+	Node* up;
+	Node* down;
+	Node* left;
+	Node* right;
+	bool newLine;
 
+
+	Node(char ch = '\0') :ch(ch)
+	{
+		up = nullptr;
+		down = nullptr;
+		left = nullptr;
+		right = nullptr;
+		newLine = 0;
+	}
+};
+struct NodeDp
+{
+	Node* node;
+	NodeDp* next;
+	char backup;
+
+	NodeDp(Node* node = nullptr)
+	{
+		this->node = node;
+		this->next = nullptr;
+	}
+};
 
 void gotoxy(int x, int y)
 {
@@ -1990,7 +1988,6 @@ private:
 		}
 	}
 public:
-	
 	int display()
 	{
 		int choice=0;
@@ -2083,40 +2080,6 @@ public:
 };
 
 
-void displayNotePadLayout(int maxX, int maxY)
-{
-	gotoxy(0, 0);
-	for (int a = 0; a <= maxY; a++)
-	{
-		cout << '|';
-		int b;
-		if (a == 0)
-		{
-			cout << "Notepad:";
-			b = 8;
-		}
-		else
-			b = 0;
-		for (;b < maxX; b++)
-		{
-			cout << ' ';
-		}
-		cout << '|';
-		if (a == 0)
-			cout << "Search";
-		cout << endl;
-	}
-	for (int b = 0; b < maxX + 2; b++)
-	{
-		if (b == 0 || b == maxX + 1)
-			cout << '|';
-		else
-			cout << '_';
-	}
-	cout << endl << " Word suggestions";
-
-}
-
 int main(int argc, char* argv[]) {
 
 	system("cls");
@@ -2134,26 +2097,20 @@ int main(int argc, char* argv[]) {
 	stack shtack;
 	stack redoStack;
 	Notepad notepad(maxX, maxY, shtack, redoStack);
-	NAryTree nAryTree;
 	
 
 	bool Running = true;
-	bool menuRunning = true;
 	
 
-	while (Running) 
-	{
+	while (Running) {
 
+		int c = menu.display();
 		bool createdSuccessfully = false;
 		bool loadedSuccessfully = false;
-		if (menuRunning)
+		switch (c)
 		{
-			int c = menu.display();
-			
-			switch (c)
-			{
 			case 1:
-				createdSuccessfully = menu.createFile(notepad);
+				createdSuccessfully=menu.createFile(notepad);
 				break;
 
 			case 2:
@@ -2166,18 +2123,45 @@ int main(int argc, char* argv[]) {
 
 			case 4:
 				return 0;
-			}
 		}
 		
 
 		if (createdSuccessfully || loadedSuccessfully)
 		{
 			system("cls");
-			menuRunning = false;
 			if(createdSuccessfully)
 				notepad.clear();
 			bool notepadRunning = true;
-			displayNotePadLayout(maxX, maxY);
+			gotoxy(0, 0);
+			for (int a = 0; a <= maxY; a++)
+			{
+				cout << '|';
+				int b;
+				if (a == 0)
+				{
+					cout << "Notepad:";
+					b = 8;
+				}
+				else
+					b = 0;
+				for (;b < maxX; b++)
+				{
+					cout << ' ';
+				}
+				cout << '|';
+				if (a == 0)
+					cout << "Search";
+				cout << endl;
+			}
+			for (int b = 0; b < maxX + 2; b++)
+			{
+				if (b == 0 || b == maxX + 1)
+					cout << '|';
+				else
+					cout << '_';
+			}
+			cout << endl<<" Word suggestions";
+
 			int x = 1, y = 1;
 			gotoxy(x, y);
 			notepad.print();
@@ -2228,7 +2212,6 @@ int main(int argc, char* argv[]) {
 								break;
 							case VK_ESCAPE:
 								notepadRunning = false;
-								menuRunning = true;
 								break;
 
 
@@ -2247,13 +2230,6 @@ int main(int argc, char* argv[]) {
 
 									if (notepad.insert(static_cast<char>(keyCode)))
 									{
-										/////////////////////N-ary TREE/////////////////////////////
-										nAryTree.addChar(notepad.current);
-
-
-
-										//////////////////////UNDO REDO/////////////////////////////
-										
 										//actiavate insertion entry in stack if a char is pressed
 										if (shtack.insertionActivated == false && keyCode != ' ')
 										{
@@ -2271,9 +2247,6 @@ int main(int argc, char* argv[]) {
 											shtack.addToInsertion(notepad.current);
 											shtack.deactivate();
 										}
-										//////////////////////UNDO REDO/////////////////////////////
-
-
 									}
 									redoStack.clear();
 								}
@@ -2283,7 +2256,6 @@ int main(int argc, char* argv[]) {
 								{
 									notepad.backSpace(true);
 									redoStack.clear();
-									nAryTree.reset();
 								}
 
 								//emter
@@ -2291,28 +2263,18 @@ int main(int argc, char* argv[]) {
 								{
 									shtack.deactivate();
 									notepad.enter();
-									nAryTree.reset();
 									redoStack.clear();
 								}
 								//undo
 								else if (keyCode == 44)
 								{
 									notepad.undo();
-									nAryTree.reset();
 								}
 
 								//redo
 								else if (keyCode == 46)
 								{
 									notepad.redo();
-									nAryTree.reset();
-								}
-
-								//print N-ary tree
-								else if (keyCode == 47)
-								{
-									nAryTree.print();
-									displayNotePadLayout(maxX, maxY);
 								}
 
 
