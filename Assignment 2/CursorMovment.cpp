@@ -39,11 +39,7 @@ using namespace std;
 #include "NAryTree.h"
 
 
-void gotoxy(int x, int y)
-{
-	COORD c = { x, y };
-	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
-}
+
 //Parent entry class that will store 1 insertion/deletion operation in stack
 class Entry
 {
@@ -2135,6 +2131,7 @@ int main(int argc, char* argv[]) {
 	stack redoStack;
 	Notepad notepad(maxX, maxY, shtack, redoStack);
 	NAryTree nAryTree;
+	String currentWord;
 	
 
 	bool Running = true;
@@ -2210,50 +2207,59 @@ int main(int argc, char* argv[]) {
 							case VK_UP: //up
 								notepad.moveUp();
 								shtack.deactivate();
+								currentWord.newWord(notepad.current);
 								break;
 
 							case VK_DOWN: //down
 								notepad.moveDown();
 								shtack.deactivate();
+								currentWord.newWord(notepad.current);
 								break;
 
 							case VK_RIGHT: //right
 								notepad.moveRight();
 								shtack.deactivate();
+								currentWord.newWord(notepad.current);
 								break;
 
 							case VK_LEFT: //left
 								notepad.moveLeft();
 								shtack.deactivate();
+								currentWord.newWord(notepad.current);
 								break;
+
+
 							case VK_ESCAPE:
 								notepadRunning = false;
 								menuRunning = true;
+								currentWord.newWord(notepad.current);
 								break;
 
 
 							default:
+								//ignore this
 								notepad.currRow = notepad.startOfRow(notepad.current);
 								notepad.head = notepad.currRow;
 								while (notepad.head->up)
 								{
 									notepad.head = notepad.head->up;
 								}
-								int keyCode = eventBuffer->Event.KeyEvent.uChar.AsciiChar;
-
 
 								//input
+								int keyCode = eventBuffer->Event.KeyEvent.uChar.AsciiChar;
 								if (keyCode == ' ' || (keyCode >= 'A' && keyCode <= 'Z') || (keyCode >= 'a' && keyCode <= 'z')) {
 
+									//insert
 									if (notepad.insert(static_cast<char>(keyCode)))
 									{
+										////////////////////current word string ////////////////////
+										currentWord.newWord(notepad.current);
+
 										/////////////////////N-ary TREE/////////////////////////////
 										nAryTree.addChar(notepad.current);
 
 
-
 										//////////////////////UNDO REDO/////////////////////////////
-										
 										//actiavate insertion entry in stack if a char is pressed
 										if (shtack.insertionActivated == false && keyCode != ' ')
 										{
@@ -2271,8 +2277,7 @@ int main(int argc, char* argv[]) {
 											shtack.addToInsertion(notepad.current);
 											shtack.deactivate();
 										}
-										//////////////////////UNDO REDO/////////////////////////////
-
+										
 
 									}
 									redoStack.clear();
@@ -2284,6 +2289,7 @@ int main(int argc, char* argv[]) {
 									notepad.backSpace(true);
 									redoStack.clear();
 									nAryTree.reset();
+									currentWord.newWord(notepad.current);
 								}
 
 								//emter
@@ -2293,12 +2299,14 @@ int main(int argc, char* argv[]) {
 									notepad.enter();
 									nAryTree.reset();
 									redoStack.clear();
+									currentWord.empty();
 								}
 								//undo
 								else if (keyCode == 44)
 								{
 									notepad.undo();
 									nAryTree.reset();
+									currentWord.empty();
 								}
 
 								//redo
@@ -2306,6 +2314,7 @@ int main(int argc, char* argv[]) {
 								{
 									notepad.redo();
 									nAryTree.reset();
+									currentWord.empty();
 								}
 
 								//print N-ary tree
@@ -2316,16 +2325,14 @@ int main(int argc, char* argv[]) {
 								}
 
 
+								//print notepad
 								notepad.currRow = notepad.startOfRow(notepad.current);
 								notepad.head = notepad.currRow;
 								while (notepad.head->up)
 								{
 									notepad.head = notepad.head->up;
 								}
-
-								
-
-								notepad.print();
+								notepad.print();								
 								break;
 							}
 						}
