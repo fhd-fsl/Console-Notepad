@@ -3,12 +3,18 @@
 #include<Windows.h>
 using namespace std;
 
+
+bool isAlphabet(char ch)
+{
+	return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z');
+}
 void gotoxy(int x, int y)
 {
 	COORD c = { x, y };
 	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
 }
 
+struct NAryNode;
 //notepad Node
 struct Node
 {
@@ -18,6 +24,7 @@ struct Node
 	Node* left;
 	Node* right;
 	bool newLine;
+	NAryNode* treeNode;
 
 
 	Node(char ch = '\0') :ch(ch)
@@ -26,6 +33,7 @@ struct Node
 		down = nullptr;
 		left = nullptr;
 		right = nullptr;
+		treeNode = nullptr;
 		newLine = 0;
 	}
 };
@@ -60,6 +68,30 @@ public:
 		this->arr = new char[length + 1];
 		this->arr[length] = '\0';
 	}
+	String(const String& copy)
+	{
+		this->length = copy.length;
+		this->arr = new char[length + 1];
+		for (int a = 0; a < length; a++)
+		{
+			this->arr[a] = copy.arr[a];
+		}
+		this->arr[length] = '\0';
+	}
+	String& operator =(const String& copy)
+	{
+		if (this->arr != nullptr)
+			delete[] this->arr;
+
+		this->length = copy.length;
+		this->arr = new char[length + 1];
+		for (int a = 0; a < length; a++)
+		{
+			this->arr[a] = copy.arr[a];
+		}
+		this->arr[length] = '\0';
+		return *this;
+	}
 
 	~String()
 	{
@@ -76,6 +108,21 @@ public:
 			temp[a] = arr[a];
 		}
 		temp[a] = ch;
+		temp[length] = '\0';
+		delete arr;
+		arr = temp;
+	}
+	void operator--(int dummy)
+	{
+		if (this->length == 0)
+			return;
+		this->length--;
+		char* temp = new char[length + 1];
+		int a = 0;
+		for (; a < length; a++)
+		{
+			temp[a] = arr[a];
+		}
 		temp[length] = '\0';
 		delete arr;
 		arr = temp;
@@ -118,7 +165,7 @@ struct NAryNode
 	NodeDp* head;//for storing the nodes in the notepad that correspond to this treeNode
 	const static int noOfChildren = 26;
 	NAryNode* children[noOfChildren];
-
+	bool endOfWord;
 	NAryNode(char ch)
 	{
 		this->ch = ch;
@@ -150,6 +197,41 @@ struct NAryNode
 			head->next = new NodeDp(node);
 		}
 	}
+	//for removing nodes that correspond to that tree node
+	void subtractNode(Node* targetNode)
+	{
+		if (!targetNode)
+			return;
+		NodeDp* prev = nullptr;
+		NodeDp* temp = head;
+		while (temp)
+		{
+			if (temp->node == targetNode)
+			{
+				if (prev == nullptr)
+				{
+					head = temp->next;
+					delete temp;
+					return;
+				}
+				else
+				{
+					prev->next = temp->next;
+					delete temp;
+					return;
+				}
+			}
+			else
+			{
+				prev = temp;
+				temp = temp->next;
+			}
+		}
+	}
+	bool hasNoCorrespondingNodes()
+	{
+		return head == nullptr;
+	}
 
 	//to convert alphateic index to array index
 	NAryNode*& Child(char ch)
@@ -159,6 +241,8 @@ struct NAryNode
 		if (ch >= 'a' && ch <= 'z')
 			return children[ch - 'a'];
 		cout << "INVALID PARAMETER FOR N-ARY NODE CHILD" << endl;
+		Node* temp = nullptr;
+		cout <<ch<< temp->right->ch << endl;
 		return children[ch];
 	}
 
@@ -241,13 +325,50 @@ public:
 		}
 	}
 
-	void print()
+	void print(String currentWord)
 	{
-		system("cls");
-		traverse(root, 'P');
-		cin.ignore(10000, '\n');
-		cin.get();
+
+		CONSOLE_SCREEN_BUFFER_INFO screen;
+		GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &screen);
+		int y = (screen.srWindow.Bottom + 1) * 0.7;
+		int x = ((screen.srWindow.Right + 1));
+		y += 3;
+		gotoxy(1, y);
+		for (int a = 0; a < x; a++)
+			cout << ' ';
+		gotoxy(1, y);
+		NAryNode* temp = root;
+		for (int a = 0; a < currentWord.length; a++)
+		{
+			if (!temp)
+				return;
+			temp = temp->Child(currentWord.arr[a]);
+		}
+		currentWord--;
+		helpingPrint(temp, currentWord);
 	}
+	void helpingPrint(NAryNode* temp, String currentWord)
+	{
+		if (!temp)
+		{
+			return;
+		}
+		currentWord += temp->ch;
+		bool leaf = 1;
+		for (int a = 0; a < temp->noOfChildren; a++)
+		{
+			if (temp->children[a])
+			{
+				leaf = 0;
+				helpingPrint(temp->children[a], currentWord);
+			}
+		}
+		if (leaf)
+		{
+			cout << currentWord.arr << ' ';
+		}
+	}
+
 	
 	//delete the node and it's subtree
 	void deleteTree(NAryNode*& rootNode)
@@ -279,14 +400,21 @@ public:
 
 			//store the address of the corresponding node in the tree's node
 			current->addNode(node);
+
+			//make the node point to it's corresponding tree node
+			node->treeNode = current;
 		}
 	}
 
 	//completely remove a tree node and attach its chidlren to its parent(use current word as a path guidance)
 	void deleteTreeNode(NAryNode* target, String word)
 	{
+		if (!target || target == root)
+			return;
 		NAryNode* temp = root;
 		int a = 0;
+
+		//find the target node by following the word-path
 		for (; a < word.length; a++)
 		{
 			if (temp && temp->Child(word.arr[a]) != target)
@@ -294,29 +422,57 @@ public:
 			else
 				break;
 		}
-		if (temp->Child(word.arr[a]) == target)
+
+		//if target is found
+		if (isAlphabet(word.arr[a]) && temp->Child(word.arr[a]) == target)
 		{
 			NAryNode* toBeDeleted = target;
+
+			//if curren=target, move current to it's parent
+			if (this->current == target)
+				this->current = temp;
+
+			//remove the link between the target's parent and target
+			temp->Child(word.arr[a]) = nullptr;
+
+			//attach all subtrees of target to it's parent
 			for (int b = 0; b < target->noOfChildren; b++)
 			{
 				attachSubtree(temp, target->children[b]);
 			}
+
+			//delete target
 			delete toBeDeleted;
 		}
+	}
+
+	void subtractNodepadNode(Node* node, String currentWord)
+	{
+		NAryNode* treeNode = node->treeNode;
+		//remove the notepad node that the tree node points to
+		if (treeNode)
+		{
+			treeNode->subtractNode(node);
+
+			//if a treenode points to no notepad nodes, delete it
+			if (treeNode->hasNoCorrespondingNodes())
+				this->deleteTreeNode(treeNode, currentWord);
+		}
+		
 	}
 
 	//add a subtree to the children of a root
 	bool attachSubtree(NAryNode*& parent, NAryNode*& child)
 	{
-		if (!child)
+		if (!child || child->ch=='\0')
 			return false;
+
 		char ch = child->ch;
-		if (ch == '\0')
-			return false;
 		//if the parent doesn't have a child for that character, attach it directly
 		if (parent->Child(ch) == nullptr)
 		{
 			parent->Child(ch) = child;
+			child = nullptr;
 			return true;
 		}
 		//if it does, attach the children of the child to the parent's child
@@ -327,12 +483,19 @@ public:
 			{
 				attachSubtree(parent->Child(ch), child->children[a]);
 			}
-			child = parent->Child(ch);
+			child = nullptr;
 			delete temp;
 			return true;
 		}
 	}
 
+	void updateCurrent(Node* node)
+	{
+		if (node->treeNode)
+			current = node->treeNode;
+		else
+			current = root;
+	}
 
 };
 

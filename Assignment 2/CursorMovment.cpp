@@ -1188,6 +1188,7 @@ public:
 				head->ch = '\n';
 				x = 1;
 				y = 1;
+				head->treeNode = nullptr;
 				ret = true;
 			}
 			head->left = nullptr;
@@ -2203,29 +2204,33 @@ int main(int argc, char* argv[]) {
 							// check if the key press was an arrow key
 							switch (eventBuffer[i].Event.KeyEvent.wVirtualKeyCode) {
 
-								//move the cursor as well as current pointer
+							//move the cursor as well as current pointer
 							case VK_UP: //up
 								notepad.moveUp();
 								shtack.deactivate();
 								currentWord.newWord(notepad.current);
+								nAryTree.updateCurrent(notepad.current);
 								break;
 
 							case VK_DOWN: //down
 								notepad.moveDown();
 								shtack.deactivate();
 								currentWord.newWord(notepad.current);
+								nAryTree.updateCurrent(notepad.current);
 								break;
 
 							case VK_RIGHT: //right
 								notepad.moveRight();
 								shtack.deactivate();
 								currentWord.newWord(notepad.current);
+								nAryTree.updateCurrent(notepad.current);
 								break;
 
 							case VK_LEFT: //left
 								notepad.moveLeft();
 								shtack.deactivate();
 								currentWord.newWord(notepad.current);
+								nAryTree.updateCurrent(notepad.current);
 								break;
 
 
@@ -2286,43 +2291,43 @@ int main(int argc, char* argv[]) {
 								//delete
 								else if (keyCode == 8)
 								{
+									nAryTree.subtractNodepadNode(notepad.current, currentWord);
 									notepad.backSpace(true);
 									redoStack.clear();
-									nAryTree.reset();
 									currentWord.newWord(notepad.current);
 								}
 
-								//emter
+								//enter
 								else if (keyCode == 13)
 								{
 									shtack.deactivate();
 									notepad.enter();
 									nAryTree.reset();
 									redoStack.clear();
-									currentWord.empty();
+									currentWord.newWord(notepad.current);
 								}
-								//undo
-								else if (keyCode == 44)
-								{
-									notepad.undo();
-									nAryTree.reset();
-									currentWord.empty();
-								}
+								////undo
+								//else if (keyCode == 44)
+								//{
+								//	notepad.undo();
+								//	nAryTree.reset();
+								//	currentWord.empty();
+								//}
 
-								//redo
-								else if (keyCode == 46)
-								{
-									notepad.redo();
-									nAryTree.reset();
-									currentWord.empty();
-								}
+								////redo
+								//else if (keyCode == 46)
+								//{
+								//	notepad.redo();
+								//	nAryTree.reset();
+								//	currentWord.empty();
+								//}
 
 								//print N-ary tree
-								else if (keyCode == 47)
+								/*else if (keyCode == 47)
 								{
 									nAryTree.print();
 									displayNotePadLayout(maxX, maxY);
-								}
+								}*/
 
 
 								//print notepad
@@ -2332,6 +2337,7 @@ int main(int argc, char* argv[]) {
 								{
 									notepad.head = notepad.head->up;
 								}
+								nAryTree.print(currentWord);
 								notepad.print();								
 								break;
 							}
