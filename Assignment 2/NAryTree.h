@@ -57,7 +57,6 @@ struct NodeDp
 //mini string class for basic word operations
 class String
 {
-	
 
 public:
 	char* arr;
@@ -165,7 +164,7 @@ struct NAryNode
 	NodeDp* head;//for storing the nodes in the notepad that correspond to this treeNode
 	const static int noOfChildren = 26;
 	NAryNode* children[noOfChildren];
-	bool endOfWord;
+
 	NAryNode(char ch)
 	{
 		this->ch = ch;
@@ -185,6 +184,20 @@ struct NAryNode
 		}
 	}
 
+	//for telling if a node corresponds to that tree node
+	bool nodeExists(Node* targetNode)
+	{
+		if (!targetNode)
+			return false;
+		NodeDp* temp = this->head;
+		while (temp)
+		{
+			if (temp->node == targetNode)
+				return true;
+			temp = temp->next;
+		}
+		return false;
+	}
 	//for storing the nodes that correspond to that tree Node
 	void addNode(Node* node)
 	{
@@ -208,6 +221,7 @@ struct NAryNode
 		{
 			if (temp->node == targetNode)
 			{
+				targetNode->treeNode = nullptr;
 				if (prev == nullptr)
 				{
 					head = temp->next;
@@ -245,37 +259,41 @@ struct NAryNode
 		cout <<ch<< temp->right->ch << endl;
 		return children[ch];
 	}
+	int getNoOfChildren()
+	{
+		int n = 0;
+		for (int a = 0; a < this->noOfChildren; a++)
+		{
+			if (this->children[a])
+				n++;
+		}
+		return n;
+	}
+
+	int getNoOfCorrespondingNodes()
+	{
+		NodeDp* temp = head;
+		int len = 0;
+		while (temp)
+		{
+			len++;
+			temp = temp->next;
+		}
+		return len;
+	}
 
 
 };
 class NAryTree
 {
-public:
-	NAryNode* root;
-	NAryNode* current;
-
-	NAryTree()
-	{
-		this->root = new NAryNode('\0');
-		current = root;
-	}
-	~NAryTree()
-	{
-		deleteTree(this->root);
-	}
-	void reset()
-	{
-		current = root;
-	}
-
 	//preorder traversal
-	void traverse(NAryNode*& current,char command = 'P', int level=0)
+	void traverse(NAryNode*& current, char command = 'P', int level = 0)
 	{
 		if (current == nullptr)
 			return;
 		bool leaf = true;
 		//print the character
-		if (command == 'P' && current->ch!='\0')
+		if (command == 'P' && current->ch != '\0')
 		{
 			for (int a = 0; a < level; a++)
 			{
@@ -297,7 +315,7 @@ public:
 				{
 					if (current->ch != '\0')
 					{
-						traverse(current->children[a], command, level+1);
+						traverse(current->children[a], command, level + 1);
 					}
 					else
 						traverse(current->children[a], command);
@@ -324,19 +342,40 @@ public:
 			}
 		}
 	}
+public:
+	NAryNode* root;
+	NAryNode* current;
 
-	void print(String currentWord)
+	NAryTree()
+	{
+		this->root = new NAryNode('\0');
+		current = root;
+	}
+	~NAryTree()
+	{
+		deleteTree(this->root);
+	}
+	void reset()
+	{
+		current = root;
+	}
+
+	
+
+	void printSuggestion(String currentWord)
 	{
 
 		CONSOLE_SCREEN_BUFFER_INFO screen;
 		GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &screen);
 		int y = (screen.srWindow.Bottom + 1) * 0.7;
 		int x = ((screen.srWindow.Right + 1));
-		y += 3;
+		y += 4;
 		gotoxy(1, y);
 		for (int a = 0; a < x; a++)
 			cout << ' ';
 		gotoxy(1, y);
+
+
 		NAryNode* temp = root;
 		for (int a = 0; a < currentWord.length; a++)
 		{
@@ -377,10 +416,9 @@ public:
 	}
 
 
-	//add a character under current
+	//add a character under current NaryNode
 	void addChar(Node* node)
 	{
-
 		//reset current if a space is entered
 		char ch = node->ch;
 		if (ch == ' ')
@@ -403,6 +441,34 @@ public:
 
 			//make the node point to it's corresponding tree node
 			node->treeNode = current;
+		}
+	}
+	void addChar(Node* node, NAryNode*& optionalParent)
+	{
+		if (!optionalParent)
+			return;
+		//reset current if a space is entered
+		char ch = node->ch;
+		if (ch == ' ')
+		{
+			optionalParent = root;
+			return;
+		}
+
+		if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z'))
+		{
+			//if optionalParent doesn't have that character as a child
+			if (!optionalParent->Child(ch))
+				optionalParent->Child(ch) = new NAryNode(ch);		//add a child
+
+			//move optionalParent to the newly added character
+			optionalParent = optionalParent->Child(ch);
+
+			//store the address of the corresponding node in the tree's node
+			optionalParent->addNode(node);
+
+			//make the node point to it's corresponding tree node
+			node->treeNode = optionalParent;
 		}
 	}
 
@@ -448,12 +514,68 @@ public:
 
 	void subtractNodepadNode(Node* node, String currentWord)
 	{
+		if (!node)
+			return;
 		NAryNode* treeNode = node->treeNode;
 		//remove the notepad node that the tree node points to
 		if (treeNode)
 		{
-			treeNode->subtractNode(node);
+				treeNode->subtractNode(node);
 
+				//to reconfigure the tree when a letter is removed from a whole word
+				NAryNode* temp = root;
+				int a = 0;
+				//find parent of the NAryNode from which we are removing the notepadnode
+				for (; a < currentWord.length; a++)
+				{
+					if (temp && temp->Child(currentWord.arr[a]) != treeNode)
+						temp = temp->Child(currentWord.arr[a]);
+					else
+						break;
+				}
+				//if the parent is found
+				if (temp && temp->Child(currentWord.arr[a]) == treeNode)
+				{
+					//shift current to it's parent
+					if (current == treeNode)
+					{
+						current = temp;
+					}
+					//find if the notepadNode's right exists in one of the NaryNode's children
+					for (int a = 0; a < treeNode->noOfChildren; a++)
+					{
+						if (treeNode->children[a])
+						{
+							//reattach the subtree
+							NAryNode* nextNaryNode = treeNode->children[a];
+							Node* nextNotepadNode = node->right;
+
+							//if it does
+							if (nextNaryNode->nodeExists(nextNotepadNode))
+							{
+								//duplicate the remaining word under the to-be-subtracted treeNode's parent and remove from original location
+								while (nextNaryNode->nodeExists(nextNotepadNode) && nextNaryNode->getNoOfCorrespondingNodes() >= 2)
+								{
+									nextNaryNode->subtractNode(nextNotepadNode);
+									NAryNode* potentialDeletedNode = nextNaryNode;
+									addChar(nextNotepadNode, temp);
+									nextNotepadNode = nextNotepadNode->right;
+									if (!nextNotepadNode)
+									{
+										if (nextNaryNode->hasNoCorrespondingNodes())
+											this->deleteTreeNode(nextNaryNode, currentWord);
+										nextNaryNode = nullptr;
+										break;
+									}
+									nextNaryNode = nextNaryNode->Child(nextNotepadNode->ch);
+									if (potentialDeletedNode->hasNoCorrespondingNodes())
+										this->deleteTreeNode(potentialDeletedNode, currentWord);
+								}
+								attachSubtree(temp, nextNaryNode);
+							}
+						}
+					}
+				}
 			//if a treenode points to no notepad nodes, delete it
 			if (treeNode->hasNoCorrespondingNodes())
 				this->deleteTreeNode(treeNode, currentWord);

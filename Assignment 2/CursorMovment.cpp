@@ -2100,7 +2100,7 @@ void displayNotePadLayout(int maxX, int maxY)
 		}
 		cout << '|';
 		if (a == 0)
-			cout << "Search";
+			cout << "Search:";
 		cout << endl;
 	}
 	for (int b = 0; b < maxX + 2; b++)
@@ -2110,7 +2110,7 @@ void displayNotePadLayout(int maxX, int maxY)
 		else
 			cout << '_';
 	}
-	cout << endl << " Word suggestions";
+	cout << endl << " Word suggestions:";
 
 }
 
@@ -2337,7 +2337,7 @@ int main(int argc, char* argv[]) {
 								{
 									notepad.head = notepad.head->up;
 								}
-								nAryTree.print(currentWord);
+								nAryTree.printSuggestion(currentWord);
 								notepad.print();								
 								break;
 							}
