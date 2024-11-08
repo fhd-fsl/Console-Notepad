@@ -3,7 +3,6 @@
 #include<Windows.h>
 using namespace std;
 
-
 bool isAlphabet(char ch)
 {
 	return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z');
@@ -161,12 +160,14 @@ public:
 struct NAryNode
 {
 	char ch;
+	bool endOfWord;
 	NodeDp* head;//for storing the nodes in the notepad that correspond to this treeNode
 	const static int noOfChildren = 26;
 	NAryNode* children[noOfChildren];
 
 	NAryNode(char ch)
 	{
+		this->endOfWord = 0;
 		this->ch = ch;
 		this->head = nullptr;
 		for (int a = 0; a < noOfChildren; a++)
@@ -207,7 +208,10 @@ struct NAryNode
 		}
 		else
 		{
-			head->next = new NodeDp(node);
+			NodeDp* temp = head;
+			while (temp->next != nullptr)
+				temp = temp->next;
+			temp->next = new NodeDp(node);
 		}
 	}
 	//for removing nodes that correspond to that tree node
@@ -402,7 +406,7 @@ public:
 				helpingPrint(temp->children[a], currentWord);
 			}
 		}
-		if (leaf)
+		if (leaf || temp->endOfWord)
 		{
 			cout << currentWord.arr << ' ';
 		}
@@ -423,6 +427,7 @@ public:
 		char ch = node->ch;
 		if (ch == ' ')
 		{
+			current->endOfWord = true;
 			current = root;
 			return;
 		}
@@ -451,6 +456,7 @@ public:
 		char ch = node->ch;
 		if (ch == ' ')
 		{
+			optionalParent->endOfWord = true;
 			optionalParent = root;
 			return;
 		}
@@ -514,7 +520,7 @@ public:
 
 	void subtractNodepadNode(Node* node, String currentWord)
 	{
-		if (!node)
+		if (!node || !isAlphabet(node->ch))
 			return;
 		NAryNode* treeNode = node->treeNode;
 		//remove the notepad node that the tree node points to
@@ -553,6 +559,9 @@ public:
 							//if it does
 							if (nextNaryNode->nodeExists(nextNotepadNode))
 							{
+								NAryNode* prev = treeNode;
+								char index=a+'A';
+
 								//duplicate the remaining word under the to-be-subtracted treeNode's parent and remove from original location
 								while (nextNaryNode->nodeExists(nextNotepadNode) && nextNaryNode->getNoOfCorrespondingNodes() >= 2)
 								{
@@ -565,13 +574,17 @@ public:
 										if (nextNaryNode->hasNoCorrespondingNodes())
 											this->deleteTreeNode(nextNaryNode, currentWord);
 										nextNaryNode = nullptr;
+										prev = nullptr;
 										break;
 									}
-									nextNaryNode = nextNaryNode->Child(nextNotepadNode->ch);
+									prev = nextNaryNode;
+									index = nextNotepadNode->ch;
+									nextNaryNode = nextNaryNode->Child(index);
 									if (potentialDeletedNode->hasNoCorrespondingNodes())
 										this->deleteTreeNode(potentialDeletedNode, currentWord);
 								}
-								attachSubtree(temp, nextNaryNode);
+								if(prev)
+									attachSubtree(temp, prev->Child(index));
 							}
 						}
 					}
@@ -604,6 +617,12 @@ public:
 			for (int a = 0; a < child->noOfChildren; a++)
 			{
 				attachSubtree(parent->Child(ch), child->children[a]);
+			}
+			while (!child->hasNoCorrespondingNodes())
+			{
+				Node* firstNode = child->head->node;
+				child->subtractNode(firstNode);
+				parent->Child(ch)->addNode(firstNode);
 			}
 			child = nullptr;
 			delete temp;
