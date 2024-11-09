@@ -208,12 +208,49 @@ public:
 		}
 	}
 
+	void wordSelectingHelper(Node* current)
+	{
+		if (!current || current->ch == ' ' || current->ch == '\n')
+			return;
+		Node* temp = current;
+		while (current->left != nullptr && current->left->ch != ' ' && current->left->ch != '\n')
+		{
+			current = current->left;
+		}
+		while (current && current != temp)
+		{
+			if (current->ch != ' ' && current->ch != '\n')
+				*this += current->ch;
+			current = current->right;
+		}
+		if (current->ch != ' ' && current->ch != '\n')
+			*this += current->ch;
+	}
+
 	void empty()
 	{
 		delete arr;
 		this->length = 0;
 		this->arr = new char[length + 1];
 		this->arr[length] = '\0';
+	}
+
+	void removeFirstCharacters(int n)
+	{
+		if (n > this->length)
+			return;
+		else
+		{
+			char* temp = new char[this->length - n + 1];
+			int b = 0;
+			for (int a = n; a < this->length; a++)
+			{
+				temp[b++] = this->arr[a];
+			}
+			temp[b] = '\0';
+			this->length -= n;
+			this->arr = temp;
+		}
 	}
 
 };
@@ -430,53 +467,10 @@ public:
 		current = root;
 	}
 
-	
-
-	void printSuggestion(String currentWord)
+	void print()
 	{
-
-		CONSOLE_SCREEN_BUFFER_INFO screen;
-		GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &screen);
-		int y = (screen.srWindow.Bottom + 1) * 0.7;
-		int x = ((screen.srWindow.Right + 1));
-		y += 4;
-		gotoxy(1, y);
-		for (int a = 0; a < x; a++)
-			cout << ' ';
-		gotoxy(1, y);
-
-
-		NAryNode* temp = root;
-		for (int a = 0; a < currentWord.length; a++)
-		{
-			if (!temp)
-				return;
-			temp = temp->Child(currentWord.arr[a]);
-		}
-		currentWord--;
-		helpingPrint(temp, currentWord);
-	}
-	void helpingPrint(NAryNode* temp, String currentWord)
-	{
-		if (!temp)
-		{
-			return;
-		}
-		currentWord += temp->ch;
-		bool leaf = 1;
-		for (int a = 0; a < temp->noOfChildren; a++)
-		{
-			if (temp->children[a])
-			{
-				leaf = 0;
-				helpingPrint(temp->children[a], currentWord);
-			}
-		}
-		if (leaf || temp->endOfWord)
-		{
-			cout << currentWord.arr << ' ';
-
-		}
+		system("cls");
+		this->traverse(this->root, 'P');
 	}
 
 	
@@ -760,6 +754,9 @@ public:
 	void search()
 	{
 		String word;
+		
+		int x = 86;
+		int y = 1;
 		gotoxy(94, 0);
 		char c='a';
 		while (c != '\n')
@@ -792,6 +789,9 @@ public:
 			while (nodedp)
 			{
 				Node* currNode = nodedp->node;
+				gotoxy(x, y);
+				cout << "Line " << currNode->lineNumber << endl;
+				y++;
 				for (int a = 0; a < word.length; a++)
 				{
 					currNode->color = true;
@@ -801,6 +801,86 @@ public:
 			}
 		}
 	}
+
+	
+	void wordCompletion(String currentWord, String& insertingWord, Node* current)
+	{
+		currentWord.empty();
+		currentWord.wordSelectingHelper(current);
+		int currWordLength = currentWord.length;
+		if (currWordLength == 0)
+			return;
+		CONSOLE_SCREEN_BUFFER_INFO screen;
+		GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &screen);
+		int y = (screen.srWindow.Bottom + 1) * 0.7;
+		int x = ((screen.srWindow.Right + 1));
+		y += 4;
+		gotoxy(1, y);
+		for (int a = 0; a < x; a++)
+			cout << ' ';
+		gotoxy(1, y);
+
+		
+
+		NAryNode* temp = root;
+		for (int a = 0; a < currentWord.length; a++)
+		{
+			if (!temp)
+				return;
+			temp = temp->Child(currentWord.arr[a]);
+		}
+		currentWord--;
+		helpingPrint(temp, currentWord, insertingWord, currWordLength);
+	}
+	void helpingPrint(NAryNode* temp, String currentWord, String& insertingWord, int currWordLength)
+	{
+
+		if (!temp || insertingWord.length > 0)
+		{
+			return;
+		}
+		currentWord += temp->ch;
+		bool leaf = 1;
+		for (int a = 0; a < temp->noOfChildren; a++)
+		{
+			if (temp->children[a])
+			{
+				leaf = 0;
+				helpingPrint(temp->children[a], currentWord, insertingWord, currWordLength);
+			}
+		}
+		if (leaf || temp->endOfWord && insertingWord.length==0)
+		{
+			CONSOLE_SCREEN_BUFFER_INFO screen;
+			GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &screen);
+			int y = (screen.srWindow.Bottom + 1) * 0.7;
+			y += 3;
+			gotoxy(0, y);
+			cout << "                                                   ";
+			gotoxy(0, y);
+			cout << currentWord.arr << '\n';
+			cout << "Insert this word?(1/0): ";
+			cout << "           ";
+			gotoxy(0, y+1);
+			cout << "Insert this word?(1/0): ";
+			int input;
+			cin >> input;
+			if (cin.fail())
+			{
+				cin.clear();
+				input = 0;
+			}
+			cin.ignore(1000, '\n');
+			if (input == 1)
+			{
+				insertingWord = currentWord;
+				insertingWord.removeFirstCharacters(currWordLength);
+			}
+		}
+	}
+
+	
+
 
 };
 

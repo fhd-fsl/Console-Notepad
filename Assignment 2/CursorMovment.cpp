@@ -1669,9 +1669,36 @@ public:
 		return true;
 	}
 
+	
 	void print()
 	{
-		
+
+		static bool nextTimeClearSearch = 0;
+		if (nextTimeClearSearch)
+		{
+			for (int a = 1; a < 15; a++)
+			{
+				gotoxy(86, a);
+				cout << "                   ";
+			}
+			nextTimeClearSearch = 0;
+		}
+		CONSOLE_SCREEN_BUFFER_INFO screen;
+		GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &screen);
+		int yC = (screen.srWindow.Bottom + 1) * 0.7;
+		yC += 3;
+		gotoxy(0, yC);
+		cout << "                                                   ";
+		gotoxy(0, yC+1);
+		cout << "                                                   ";
+		gotoxy(0, yC + 2);
+		cout << "                                                   ";
+		gotoxy(0, yC + 3);
+		cout << "                                                   ";
+		gotoxy(0, yC + 4);
+		cout << "                                                   ";
+
+
 		Node* currRow = head;
 		int rowNum = 1;
 		while (currRow)
@@ -1696,6 +1723,7 @@ public:
 					{
 						current->color = false;
 						SetConsoleColor(7);
+						nextTimeClearSearch = 1;
 					}
 					colNum++;
 				}
@@ -2244,6 +2272,10 @@ int main(int argc, char* argv[]) {
 								int keyCode = eventBuffer->Event.KeyEvent.uChar.AsciiChar;
 								if (keyCode == ' ' || (keyCode >= 'A' && keyCode <= 'Z') || (keyCode >= 'a' && keyCode <= 'z')) {
 
+									if (keyCode == ' ')
+									{
+										nAryTree.adjustEnter(notepad.current, notepad.x == 1, currentWord);
+									}
 									//insert
 									if (notepad.insert(static_cast<char>(keyCode)))
 									{
@@ -2298,11 +2330,77 @@ int main(int argc, char* argv[]) {
 									redoStack.clear();
 									currentWord.newWord(notepad.current);
 								}
+
 								//search
 								else if (keyCode == 6)
 								{
 									nAryTree.search();
 								}
+
+								//@==NAry word Completion
+								else if (keyCode == 64)
+								{
+									String ins;
+									nAryTree.wordCompletion(currentWord, ins, notepad.current);
+									for (int a = 0; a < ins.length; a++)
+									{
+										//insert
+										if ((isAlphabet(ins.arr[a]) || ins.arr[a]==' ') && notepad.insert(ins.arr[a]))
+										{
+
+											/////////////////////N-ary TREE/////////////////////////////
+											nAryTree.addChar(notepad.current, currentWord);
+											////////////////////current word string ////////////////////
+											currentWord.newWord(notepad.current);
+
+
+											//////////////////////UNDO REDO/////////////////////////////
+											//actiavate insertion entry in stack if a char is pressed
+											if (shtack.insertionActivated == false && keyCode != ' ')
+											{
+												shtack.activateInsertion(notepad.head);
+												shtack.addToInsertion(notepad.current);
+											}
+											//if insertion is activated and a space isn't entered, add the new node to the insertion entry
+											else if (shtack.insertionActivated == true && keyCode != ' ')
+											{
+												shtack.addToInsertion(notepad.current);
+											}
+											//if space is entered, finish taking input in undo stack (1 word completed)
+											else if (shtack.insertionActivated == true && keyCode == ' ')
+											{
+												shtack.addToInsertion(notepad.current);
+												shtack.deactivate();
+											}
+
+
+										}
+										redoStack.clear();
+									}
+								}
+								
+								//print N-ary tree using '/'
+								else if (keyCode == 47)
+								{
+									nAryTree.print();
+									cin.get();
+									cin.ignore();
+									displayNotePadLayout(maxX, maxY);
+								}
+
+
+
+								//print notepad
+								notepad.currRow = notepad.startOfRow(notepad.current);
+								notepad.head = notepad.currRow;
+								while (notepad.head->up)
+								{
+									notepad.head = notepad.head->up;
+								}
+								notepad.print();								
+								break;
+
+
 								////undo
 								//else if (keyCode == 44)
 								//{
@@ -2318,25 +2416,6 @@ int main(int argc, char* argv[]) {
 								//	nAryTree.reset();
 								//	currentWord.empty();
 								//}
-
-								//print N-ary tree
-								/*else if (keyCode == 47)
-								{
-									nAryTree.print();
-									displayNotePadLayout(maxX, maxY);
-								}*/
-
-
-								//print notepad
-								notepad.currRow = notepad.startOfRow(notepad.current);
-								notepad.head = notepad.currRow;
-								while (notepad.head->up)
-								{
-									notepad.head = notepad.head->up;
-								}
-								nAryTree.printSuggestion(currentWord);
-								notepad.print();								
-								break;
 							}
 						}
 
