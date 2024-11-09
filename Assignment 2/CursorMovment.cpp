@@ -4,38 +4,6 @@
 #include<filesystem>
 using namespace std;
 
-
-//struct Node
-//{
-//	char ch;
-//	Node* up;
-//	Node* down;
-//	Node* left;
-//	Node* right;
-//	bool newLine;
-//
-//
-//	Node(char ch = '\0') :ch(ch)
-//	{
-//		up = nullptr;
-//		down = nullptr;
-//		left = nullptr;
-//		right = nullptr;
-//		newLine = 0;
-//	}
-//};
-//struct NodeDp
-//{
-//	Node* node;
-//	NodeDp* next;
-//	char backup;
-//
-//	NodeDp(Node* node = nullptr)
-//	{
-//		this->node = node;
-//		this->next = nullptr;
-//	}
-//};
 #include "NAryTree.h"
 
 
@@ -798,9 +766,12 @@ public:
 		{
 			temp->up = nullptr;
 			temp = temp->right;
+			temp->lineNumber = 1;
 		}
+		int ln = 0;
 		while (row2)
 		{
+			ln++;
 			Node* curr1 = row1;
 			Node* curr2 = row2;
 			row1->left = nullptr;
@@ -811,7 +782,8 @@ public:
 
 			while (!curr1End || !curr2End)
 			{
-
+				curr1->lineNumber = ln;
+				curr2->lineNumber = ln + 1;
 				if (!curr1End)
 					curr1->down = curr2;
 				if (!curr2End)
@@ -2257,11 +2229,11 @@ int main(int argc, char* argv[]) {
 									//insert
 									if (notepad.insert(static_cast<char>(keyCode)))
 									{
+										
+										/////////////////////N-ary TREE/////////////////////////////
+										nAryTree.addChar(notepad.current, currentWord);
 										////////////////////current word string ////////////////////
 										currentWord.newWord(notepad.current);
-
-										/////////////////////N-ary TREE/////////////////////////////
-										nAryTree.addChar(notepad.current);
 
 
 										//////////////////////UNDO REDO/////////////////////////////
@@ -2293,6 +2265,7 @@ int main(int argc, char* argv[]) {
 								{
 									nAryTree.subtractNodepadNode(notepad.current, currentWord);
 									notepad.backSpace(true);
+									nAryTree.updateCurrent(notepad.current);
 									redoStack.clear();
 									currentWord.newWord(notepad.current);
 								}
@@ -2300,9 +2273,10 @@ int main(int argc, char* argv[]) {
 								//enter
 								else if (keyCode == 13)
 								{
+									nAryTree.adjustEnter(notepad.current, notepad.x==1, currentWord);
 									shtack.deactivate();
 									notepad.enter();
-									nAryTree.reset();
+									nAryTree.updateCurrent(notepad.current);
 									redoStack.clear();
 									currentWord.newWord(notepad.current);
 								}

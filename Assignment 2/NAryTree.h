@@ -2,6 +2,7 @@
 #include<iostream>
 #include<Windows.h>
 using namespace std;
+//fix insertion in start/middle of word
 
 bool isAlphabet(char ch)
 {
@@ -12,6 +13,67 @@ void gotoxy(int x, int y)
 	COORD c = { x, y };
 	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
 }
+
+template <class T>
+class StackNode
+{
+public:
+	T data;
+	StackNode<T>* next;
+
+	StackNode(T data)
+	{
+		this->data = data;
+		next = nullptr;
+	}
+	StackNode()
+	{
+		next = nullptr;
+	}
+};
+
+template <class T>
+class Stack
+{
+	StackNode<T>* top;
+
+public:
+
+	Stack()
+	{
+		top = nullptr;
+	}
+
+	bool isEmpty()
+	{
+		return top == nullptr;
+	}
+
+	T& Top()
+	{
+		return this->top->data;
+	}
+
+	void push(T val)
+	{
+		StackNode<T>* temp = new StackNode<T>(val);
+		temp->next = top;
+		top = temp;
+	}
+	T pop()
+	{
+		if (isEmpty())
+		{
+			return NULL;
+		}
+
+		T temp = top->data;
+		StackNode<T>* deletingNode = top;
+		top = top->next;
+		delete deletingNode;
+		return temp;
+	}
+};
 
 struct NAryNode;
 //notepad Node
@@ -24,6 +86,8 @@ struct Node
 	Node* right;
 	bool newLine;
 	NAryNode* treeNode;
+	bool color;
+	int lineNumber;
 
 
 	Node(char ch = '\0') :ch(ch)
@@ -34,6 +98,8 @@ struct Node
 		right = nullptr;
 		treeNode = nullptr;
 		newLine = 0;
+		color = 0;
+		lineNumber = 0;
 	}
 };
 
@@ -409,6 +475,7 @@ public:
 		if (leaf || temp->endOfWord)
 		{
 			cout << currentWord.arr << ' ';
+
 		}
 	}
 
@@ -421,7 +488,7 @@ public:
 
 
 	//add a character under current NaryNode
-	void addChar(Node* node)
+	void addChar(Node* node, NAryNode*& current, String currentWord)
 	{
 		//reset current if a space is entered
 		char ch = node->ch;
@@ -439,6 +506,7 @@ public:
 				current->Child(ch) = new NAryNode(ch);		//add a child
 			
 			//move current to the newly added character
+			NAryNode* prev = current;
 			current = current->Child(ch);
 
 			//store the address of the corresponding node in the tree's node
@@ -446,36 +514,56 @@ public:
 
 			//make the node point to it's corresponding tree node
 			node->treeNode = current;
+
+			//see if inserting in the middle/start of a word
+			if (node->right && isAlphabet(node->right->ch))
+			{
+				NAryNode* temp = current;
+				for (int a = 0; a < prev->noOfChildren; a++)
+				{
+					if (prev->children[a])
+					{
+						//find the tree node that corresponds to the notepad node's right
+						NAryNode* nextNaryNode = prev->children[a];
+						Node* nextNotepadNode = node->right;
+						Stack<NAryNode*> nAryStack;
+
+						//we traverse the word in the notepad and tree simultaneously
+						while(nextNotepadNode && nextNaryNode && nextNaryNode->nodeExists(nextNotepadNode))
+						{
+							//remove the notepad node from under its current parent and attach it to the new parent(the newly inserted notepad node)
+							nextNaryNode->subtractNode(nextNotepadNode);
+							NAryNode* potentialDeletedNode = nextNaryNode;
+							addChar(nextNotepadNode, temp, currentWord);
+							nextNotepadNode = nextNotepadNode->right;
+							if (!nextNotepadNode || !isAlphabet(nextNotepadNode->ch))
+							{
+								//if a NaryNode has become empty, push it on stack for deletion
+								if (nextNaryNode->hasNoCorrespondingNodes())
+									nAryStack.push(nextNaryNode);
+								nextNaryNode = nullptr;
+								break;
+							}
+							nextNaryNode = nextNaryNode->Child(nextNotepadNode->ch);
+							if (potentialDeletedNode->hasNoCorrespondingNodes())
+								nAryStack.push(potentialDeletedNode);
+						}
+						while (!nAryStack.isEmpty())
+						{
+							NAryNode* deleteThis = nAryStack.Top();
+							nAryStack.pop();
+							this->deleteTreeNode(deleteThis, currentWord);
+						}
+					}
+				}
+			}
+
 		}
 	}
-	void addChar(Node* node, NAryNode*& optionalParent)
+	void addChar(Node* node, String currentWord)
 	{
-		if (!optionalParent)
-			return;
-		//reset current if a space is entered
-		char ch = node->ch;
-		if (ch == ' ')
-		{
-			optionalParent->endOfWord = true;
-			optionalParent = root;
-			return;
-		}
+		addChar(node, this->current, currentWord);
 
-		if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z'))
-		{
-			//if optionalParent doesn't have that character as a child
-			if (!optionalParent->Child(ch))
-				optionalParent->Child(ch) = new NAryNode(ch);		//add a child
-
-			//move optionalParent to the newly added character
-			optionalParent = optionalParent->Child(ch);
-
-			//store the address of the corresponding node in the tree's node
-			optionalParent->addNode(node);
-
-			//make the node point to it's corresponding tree node
-			node->treeNode = optionalParent;
-		}
 	}
 
 	//completely remove a tree node and attach its chidlren to its parent(use current word as a path guidance)
@@ -567,7 +655,7 @@ public:
 								{
 									nextNaryNode->subtractNode(nextNotepadNode);
 									NAryNode* potentialDeletedNode = nextNaryNode;
-									addChar(nextNotepadNode, temp);
+									addChar(nextNotepadNode, temp, currentWord);
 									nextNotepadNode = nextNotepadNode->right;
 									if (!nextNotepadNode)
 									{
@@ -629,6 +717,38 @@ public:
 			return true;
 		}
 	}
+	void adjustEnter(Node* node, bool doNotDoAnything, String currentWord)
+	{
+		//if enter pressed in middle of a word and it is not at x==1
+		if (!doNotDoAnything && node->right && isAlphabet(node->right->ch))
+		{
+			Node* currentNode = node->right;
+			NAryNode* treeNode = currentNode->treeNode;
+			NAryNode* temp = root;
+			Stack<NAryNode*> deletionStack;
+
+			//take all characters after the cursor and create a new word for them in the tree(seperate from original word)
+			while (currentNode && isAlphabet(currentNode->ch) && treeNode && treeNode->nodeExists(currentNode))
+			{
+				treeNode->subtractNode(currentNode);
+				if (treeNode->hasNoCorrespondingNodes())
+					deletionStack.push(treeNode);
+				addChar(currentNode, temp, currentWord);
+
+				currentNode = currentNode->right;
+				if (currentNode && isAlphabet(currentNode->ch))
+					treeNode = treeNode->Child(currentNode->ch);
+				else
+					treeNode = nullptr;
+			}
+			while (!deletionStack.isEmpty())
+			{
+				NAryNode* deleteThis = deletionStack.Top();
+				deletionStack.pop();
+				this->deleteTreeNode(deleteThis, currentWord);
+			}
+		}
+	}
 
 	void updateCurrent(Node* node)
 	{
@@ -636,6 +756,35 @@ public:
 			current = node->treeNode;
 		else
 			current = root;
+	}
+	void search(String word)
+	{
+		NAryNode* temp = root;
+		bool found = true;
+		for (int a = 0; a < word.length; a++)
+		{
+			if(isAlphabet(word.arr[a]) && temp)
+				temp = temp->Child(word.arr[a]);
+			else
+			{
+				found = false;
+				break;
+			}
+		}
+		if (found)
+		{
+			temp = root;
+			for (int a = 0; a < word.length; a++)
+			{
+				temp = temp->Child(word.arr[a]);
+				NodeDp* tempDp = temp->head;
+				while (tempDp)
+				{
+					tempDp->node->color = true;
+					tempDp = tempDp->next;
+				}
+			}
+		}
 	}
 
 };
