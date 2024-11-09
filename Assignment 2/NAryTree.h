@@ -2,7 +2,7 @@
 #include<iostream>
 #include<Windows.h>
 using namespace std;
-//fix insertion in start/middle of word
+//fahad fa f (if search for fahad, fa and f highlight too)
 
 bool isAlphabet(char ch)
 {
@@ -757,32 +757,47 @@ public:
 		else
 			current = root;
 	}
-	void search(String word)
+	void search()
 	{
+		String word;
+		gotoxy(94, 0);
+		char c='a';
+		while (c != '\n')
+		{
+			c = cin.get();
+			if (c == '\n' || c == ' ')
+			{
+				break;
+			}
+			if (isAlphabet(c))
+				word += c;
+		}
+
 		NAryNode* temp = root;
 		bool found = true;
-		for (int a = 0; a < word.length; a++)
+		for (int a = 0; a < word.length; a++)		//take the temp pointer till the word's last NAryNode
 		{
 			if(isAlphabet(word.arr[a]) && temp)
 				temp = temp->Child(word.arr[a]);
 			else
 			{
 				found = false;
-				break;
+				break;			
 			}
 		}
-		if (found)
+		//traverse all the words from the last character till the first and turn color on
+		if (temp && found)
 		{
-			temp = root;
-			for (int a = 0; a < word.length; a++)
+			NodeDp* nodedp = temp->head;
+			while (nodedp)
 			{
-				temp = temp->Child(word.arr[a]);
-				NodeDp* tempDp = temp->head;
-				while (tempDp)
+				Node* currNode = nodedp->node;
+				for (int a = 0; a < word.length; a++)
 				{
-					tempDp->node->color = true;
-					tempDp = tempDp->next;
+					currNode->color = true;
+					currNode = currNode->left;
 				}
+				nodedp = nodedp->next;
 			}
 		}
 	}

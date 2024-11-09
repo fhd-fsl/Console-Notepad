@@ -4,6 +4,12 @@
 #include<filesystem>
 using namespace std;
 
+void SetConsoleColor(int color) 
+{
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleTextAttribute(hConsole, color);
+}
+
 #include "NAryTree.h"
 
 
@@ -764,9 +770,9 @@ public:
 		Node* temp = head;
 		while (temp)
 		{
+			temp->lineNumber = 1;
 			temp->up = nullptr;
 			temp = temp->right;
-			temp->lineNumber = 1;
 		}
 		int ln = 0;
 		while (row2)
@@ -1665,6 +1671,7 @@ public:
 
 	void print()
 	{
+		
 		Node* currRow = head;
 		int rowNum = 1;
 		while (currRow)
@@ -1680,7 +1687,16 @@ public:
 				gotoxy(colNum, rowNum);
 				if (current->ch != '\n')
 				{
+					if (current->color)
+					{
+						SetConsoleColor(2);
+					}
 					cout << current->ch;
+					if (current->color)
+					{
+						current->color = false;
+						SetConsoleColor(7);
+					}
 					colNum++;
 				}
 				current = current->right;
@@ -1705,6 +1721,8 @@ public:
 				cout << " ";
 			}
 		}
+		gotoxy(94, 0);
+		cout << "                         ";
 		// After printing, move the cursor back to its original position
 		gotoxy(x, y);
 	}
@@ -2279,6 +2297,11 @@ int main(int argc, char* argv[]) {
 									nAryTree.updateCurrent(notepad.current);
 									redoStack.clear();
 									currentWord.newWord(notepad.current);
+								}
+								//search
+								else if (keyCode == 6)
+								{
+									nAryTree.search();
 								}
 								////undo
 								//else if (keyCode == 44)
