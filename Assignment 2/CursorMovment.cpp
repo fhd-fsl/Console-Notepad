@@ -2151,6 +2151,8 @@ int main(int argc, char* argv[]) {
 	Notepad notepad(maxX, maxY, shtack, redoStack);
 	NAryTree nAryTree;
 	String currentWord;
+	String prevWord;
+	chilliMilliTree CMtree;
 	
 
 	bool Running = true;
@@ -2226,6 +2228,7 @@ int main(int argc, char* argv[]) {
 							case VK_UP: //up
 								notepad.moveUp();
 								shtack.deactivate();
+								prevWord = currentWord;
 								currentWord.newWord(notepad.current);
 								nAryTree.updateCurrent(notepad.current);
 								break;
@@ -2233,6 +2236,7 @@ int main(int argc, char* argv[]) {
 							case VK_DOWN: //down
 								notepad.moveDown();
 								shtack.deactivate();
+								prevWord = currentWord;
 								currentWord.newWord(notepad.current);
 								nAryTree.updateCurrent(notepad.current);
 								break;
@@ -2240,6 +2244,7 @@ int main(int argc, char* argv[]) {
 							case VK_RIGHT: //right
 								notepad.moveRight();
 								shtack.deactivate();
+								prevWord = currentWord;
 								currentWord.newWord(notepad.current);
 								nAryTree.updateCurrent(notepad.current);
 								break;
@@ -2247,6 +2252,7 @@ int main(int argc, char* argv[]) {
 							case VK_LEFT: //left
 								notepad.moveLeft();
 								shtack.deactivate();
+								prevWord = currentWord;
 								currentWord.newWord(notepad.current);
 								nAryTree.updateCurrent(notepad.current);
 								break;
@@ -2274,15 +2280,20 @@ int main(int argc, char* argv[]) {
 
 									if (keyCode == ' ')
 									{
+										String temp;
+										temp.wordSelectingHelper(notepad.current);
+										CMtree.addWord(temp);
+
 										nAryTree.adjustEnter(notepad.current, notepad.x == 1, currentWord);
 									}
 									//insert
 									if (notepad.insert(static_cast<char>(keyCode)))
 									{
-										
+
 										/////////////////////N-ary TREE/////////////////////////////
 										nAryTree.addChar(notepad.current, currentWord);
 										////////////////////current word string ////////////////////
+										prevWord = currentWord;
 										currentWord.newWord(notepad.current);
 
 
@@ -2304,7 +2315,7 @@ int main(int argc, char* argv[]) {
 											shtack.addToInsertion(notepad.current);
 											shtack.deactivate();
 										}
-										
+
 
 									}
 									redoStack.clear();
@@ -2317,17 +2328,34 @@ int main(int argc, char* argv[]) {
 									notepad.backSpace(true);
 									nAryTree.updateCurrent(notepad.current);
 									redoStack.clear();
+									prevWord = currentWord;
 									currentWord.newWord(notepad.current);
+									if (notepad.current->ch == ' ')
+									{
+										Node* temp = notepad.current;
+										while (temp && !isAlphabet(temp->ch))
+										{
+											temp = temp->left;
+										}
+										if (temp)
+										{
+											prevWord.wordSelectingHelper(temp);
+										}
+									}
 								}
 
 								//enter
 								else if (keyCode == 13)
 								{
-									nAryTree.adjustEnter(notepad.current, notepad.x==1, currentWord);
+									String temp;
+									temp.wordSelectingHelper(notepad.current);
+									CMtree.addWord(temp);
+									nAryTree.adjustEnter(notepad.current, notepad.x == 1, currentWord);
 									shtack.deactivate();
 									notepad.enter();
 									nAryTree.updateCurrent(notepad.current);
 									redoStack.clear();
+									prevWord = currentWord;
 									currentWord.newWord(notepad.current);
 								}
 
@@ -2337,11 +2365,14 @@ int main(int argc, char* argv[]) {
 									nAryTree.search();
 								}
 
-								//@==NAry word Completion
-								else if (keyCode == 64)
+								//@==NAry word Completion, *==chilli milli word completion
+								else if (keyCode == 64 || (keyCode == 42 && !isAlphabet(notepad.current->ch)))
 								{
 									String ins;
-									nAryTree.wordCompletion(currentWord, ins, notepad.current);
+									if (keyCode == 64)
+										nAryTree.wordCompletion(currentWord, ins, notepad.current);
+									else if (keyCode == 42)
+										CMtree.displaySuggestions(prevWord, ins);
 									for (int a = 0; a < ins.length; a++)
 									{
 										//insert

@@ -191,6 +191,8 @@ public:
 		delete arr;
 		arr = temp;
 	}
+
+	//store word from start of word till end of word
 	void newWord(Node* current)
 	{
 		this->empty();
@@ -208,8 +210,10 @@ public:
 		}
 	}
 
+	//store word from start of word till current
 	void wordSelectingHelper(Node* current)
 	{
+		this->empty();
 		if (!current || current->ch == ' ' || current->ch == '\n')
 			return;
 		Node* temp = current;
@@ -223,7 +227,7 @@ public:
 				*this += current->ch;
 			current = current->right;
 		}
-		if (current->ch != ' ' && current->ch != '\n')
+		if (current && current->ch != ' ' && current->ch != '\n')
 			*this += current->ch;
 	}
 
@@ -251,6 +255,28 @@ public:
 			this->length -= n;
 			this->arr = temp;
 		}
+	}
+
+	bool operator==(String s)
+	{
+		if (this->length != s.length)
+			return false;
+		for (int a = 0; a < this->length; a++)
+		{
+			if (this->arr[a] != s.arr[a])
+			{
+				if (this->arr[a] + 32 == s.arr[a] || this->arr[a] - 32 == s.arr[a])
+				{
+					continue;
+				}
+				else
+				{
+					return false;
+				}
+			}
+				
+		}
+		return true;
 	}
 
 };
@@ -805,7 +831,7 @@ public:
 	
 	void wordCompletion(String currentWord, String& insertingWord, Node* current)
 	{
-		currentWord.empty();
+		
 		currentWord.wordSelectingHelper(current);
 		int currWordLength = currentWord.length;
 		if (currWordLength == 0)
@@ -884,3 +910,176 @@ public:
 
 };
 
+struct chillNode;
+struct chillNodeDp
+{
+	chillNode* node;
+	chillNodeDp* next;
+
+	chillNodeDp(chillNode* node = nullptr) : node(node), next(nullptr)
+	{}
+};
+
+struct chillNode
+{
+	String s;
+	chillNodeDp* head;
+
+	chillNode(String s)
+	{
+		this->s = s;
+		head = nullptr;
+	}
+	~chillNode()
+	{
+		while (head)
+		{
+			chillNodeDp* temp = head;
+			head = head->next;
+			delete temp;
+		}
+	}
+
+	void addChild(chillNode* child)
+	{
+		if (!child)
+			return;
+		if (head == nullptr)
+		{
+			head = new chillNodeDp(child);
+		}
+		else
+		{
+			chillNodeDp* temp = head;
+			
+			//child already exists
+			if (temp->node == child)
+				return;
+			while (temp->next)
+			{	
+				//child already exists
+				if (temp->node == child)
+					return;
+				temp = temp->next;
+			}
+			temp->next = new chillNodeDp(child);
+		}
+	}
+
+};
+
+
+class chilliMilliTree
+{
+public:
+	chillNodeDp* head;
+	chillNodeDp* current;
+
+	chilliMilliTree()
+	{
+		head = nullptr;
+		current = nullptr;
+	}
+	~chilliMilliTree()
+	{
+		while (head)
+		{
+			chillNodeDp* temp = head;
+			delete temp->node;
+			head = head->next;
+			delete temp;
+		}
+	}
+	bool isEmpty()
+	{
+		return head == nullptr;
+	}
+	chillNodeDp* wordExists(String word)
+	{
+		if (isEmpty())
+			return nullptr;
+		chillNodeDp* temp = head;
+		while (temp)
+		{
+			if (temp->node->s == word)
+				return temp;
+			temp = temp->next;
+		}
+		return nullptr;
+	}
+	void addWord(String word)
+	{
+		if (word.length == 0)
+			return;
+
+		//insertion for first time
+		if (isEmpty())
+		{
+			head = new chillNodeDp(new chillNode(word));
+			current = head;
+			return;
+		}
+
+		//see if a word already exists in CM tree
+		chillNodeDp* temp = wordExists(word);
+
+		//if it doesnt exist, add to the base linked list record of words(head)
+		if (!temp)
+		{
+			chillNodeDp* insertionPoint = head;
+			while (insertionPoint->next)
+			{
+				insertionPoint = insertionPoint->next;
+			}
+			insertionPoint->next = new chillNodeDp(new chillNode(word));
+			temp = insertionPoint->next;
+		}
+
+
+		//temp points to the current inserted words node
+		//make current point to temp
+		current->node->addChild(temp->node);
+		current = temp;
+	}
+
+	void displaySuggestions(String currentWord, String& insertingWord)
+	{
+		if (currentWord.length == 0)
+			return;
+		CONSOLE_SCREEN_BUFFER_INFO screen;
+		GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &screen);
+		int y = (screen.srWindow.Bottom + 1) * 0.7;
+		y += 3;
+
+		chillNodeDp* temp = current->node->head;
+		while (temp)
+		{
+			gotoxy(0, y);
+			cout << "                                                   ";
+			gotoxy(0, y);
+			cout << temp->node->s.arr << '\n';
+			cout << "Insert this word?(1/0): ";
+			cout << "           ";
+			gotoxy(0, y + 1);
+			cout << "Insert this word?(1/0): ";
+			int input;
+			cin >> input;
+			if (cin.fail())
+			{
+				cin.clear();
+				input = 0;
+			}
+			cin.ignore(1000, '\n');
+			if (input == 1)
+			{
+				insertingWord = temp->node->s;
+				break;
+			}
+			else
+			{
+				temp = temp->next;
+			}
+		}
+	}
+
+};
