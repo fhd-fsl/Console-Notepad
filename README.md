@@ -2,6 +2,7 @@
 
 A feature-rich terminal notepad written in C++ for Windows, supporting file I/O, undo/redo, word & sentence completion, live search, and a trie-based autocomplete engine.
 This project was made from scratch, all classes and data structures were made manually to get a good grip on data structures concepts. 
+▶ [Watch full demo on YouTube](https://youtu.be/4Rb3-TwRjvM)
 
 ---
 
