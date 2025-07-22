@@ -1,7 +1,7 @@
 #include <iostream>
 #include <Windows.h>
-#include<fstream>
-#include<filesystem>
+#include <fstream>
+#include <filesystem>
 using namespace std;
 
 
@@ -840,7 +840,7 @@ public:
 		CONSOLE_SCREEN_BUFFER_INFO screen;
 		GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &screen);
 		int y = (screen.srWindow.Bottom + 1) * 0.7;
-		int x = ((screen.srWindow.Right + 1));
+		int x = ((screen.srWindow.Right - 35));
 		y += 4;
 		gotoxy(1, y);
 		for (int a = 0; a < x; a++)
@@ -883,7 +883,7 @@ public:
 			int y = (screen.srWindow.Bottom + 1) * 0.7;
 			y += 3;
 			gotoxy(0, y);
-			cout << "                                                   ";
+			cout << "                             ";
 			gotoxy(0, y);
 			cout << currentWord.arr << '\n';
 			cout << "Insert this word?(1/0): ";
@@ -1056,7 +1056,7 @@ public:
 		while (temp)
 		{
 			gotoxy(0, y);
-			cout << "                                                   ";
+			cout << "                                    ";
 			gotoxy(0, y);
 			cout << temp->node->s.arr << '\n';
 			cout << "Insert this word?(1/0): ";
@@ -3214,6 +3214,37 @@ void displayNotePadLayout(int maxX, int maxY)
 			cout << '_';
 	}
 	cout << endl << " Word suggestions:";
+	for(int b = 0; b < maxX - 16; b++)
+	{
+		cout << ' ';
+	}
+	cout << " Shortcuts:" << endl;
+	for (int b = 0; b < maxX + 2; b++)
+	{
+		cout << ' ';
+	}
+	cout << " Undo : Ctrl+z" << endl;
+	for (int b = 0; b < maxX + 2; b++)
+	{
+		cout << ' ';
+	}
+	cout << " Redo : Ctrl+y" << endl;
+	for (int b = 0; b < maxX + 2; b++)
+	{
+		cout << ' ';
+	}
+	cout << " Word Completion : @" << endl;
+	for (int b = 0; b < maxX + 2; b++)
+	{
+		cout << ' ';
+	}
+	cout << " Sentence Completion : TAB" << endl;
+	for (int b = 0; b < maxX + 2; b++)
+	{
+		cout << ' ';
+	}
+	cout << " Find : Ctrl+f";
+	
 
 }
 
@@ -3452,19 +3483,19 @@ int main(int argc, char* argv[]) {
 									currentWord.newWord(notepad.current);
 								}
 
-								//search
+								//search (Ctrl + f)
 								else if (keyCode == 6)
 								{
 									nAryTree.search();
 								}
 
-								//@==NAry word Completion, *==chilli milli word completion
-								else if (keyCode == 64 || (keyCode == 42 && !isAlphabet(notepad.current->ch)))
+								//@ = word Completion, TAB = sentence completion
+								else if (keyCode == 64 || (keyCode == 9 && !isAlphabet(notepad.current->ch)))
 								{
 									String ins;
 									if (keyCode == 64)
 										nAryTree.wordCompletion(currentWord, ins, notepad.current);
-									else if (keyCode == 42)
+									else if (keyCode == 9)
 										CMtree.displaySuggestions(prevWord, ins);
 									for (int a = 0; a < ins.length; a++)
 									{
@@ -3512,6 +3543,22 @@ int main(int argc, char* argv[]) {
 									displayNotePadLayout(maxX, maxY);
 								}
 
+								//undo (Ctrl + z)
+								else if (keyCode == 26)
+								{
+									notepad.undo();
+									nAryTree.reset();
+									currentWord.empty();
+								}
+
+								//redo (Ctrl + y)
+								else if (keyCode == 25)
+								{
+									notepad.redo();
+									nAryTree.reset();
+									currentWord.empty();
+								}
+
 
 
 								//print notepad
@@ -3524,22 +3571,6 @@ int main(int argc, char* argv[]) {
 								notepad.print();								
 								break;
 
-
-								////undo
-								//else if (keyCode == 44)
-								//{
-								//	notepad.undo();
-								//	nAryTree.reset();
-								//	currentWord.empty();
-								//}
-
-								////redo
-								//else if (keyCode == 46)
-								//{
-								//	notepad.redo();
-								//	nAryTree.reset();
-								//	currentWord.empty();
-								//}
 							}
 						}
 
